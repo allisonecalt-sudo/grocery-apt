@@ -399,6 +399,109 @@
       cursor: pointer; text-align: center;
     }
     .shop-empty { text-align: center; color: #aaa; font-style: italic; padding: 40px 20px; }
+
+    /* === WEEKLY STAPLES === */
+    .staples-card {
+      background: #fffbf0;
+      border: 2px solid #f0d58a;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      overflow: visible;
+    }
+    .staples-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #7a5a00;
+      border-radius: 14px;
+    }
+    .staples-header:hover { background: #fffaea; }
+    .staples-body { padding: 0 18px 14px; }
+    .staples-body.collapsed { display: none; }
+    .staples-add-all {
+      display: block;
+      width: 100%;
+      padding: 9px 14px;
+      background: #f0c040;
+      color: #5a3a00;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 12px;
+    }
+    .staples-add-all:hover { background: #e6b800; }
+    .staple-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #f5edcc;
+    }
+    .staple-row:last-child { border-bottom: none; }
+    .staple-name { flex: 1; font-size: 0.92rem; color: #5a3a00; }
+    .staple-delete { background: none; border: none; color: #ccc; cursor: pointer; font-size: 0.95rem; padding: 2px 4px; border-radius: 4px; }
+    .staple-delete:hover { color: #e07070; }
+    .staples-add-row { display: flex; gap: 8px; margin-top: 10px; }
+    .staples-input { flex: 1; padding: 8px 12px; border: 2px solid #e8d88a; border-radius: 10px; font-size: 0.9rem; outline: none; background: #fffdf5; }
+    .staples-input:focus { border-color: #c8a800; }
+    .staples-btn { padding: 8px 12px; background: #f0c040; color: #5a3a00; border: none; border-radius: 10px; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+    .staples-btn:hover { background: #e6b800; }
+    .staples-count { background: #fde980; color: #7a5a00; border-radius: 20px; padding: 2px 10px; font-size: 0.78rem; font-weight: 600; }
+
+    /* === NUTRITIONIST SECTION === */
+    .nutri-card {
+      background: #f0f7ff;
+      border: 2px solid #a0c4e8;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      overflow: visible;
+    }
+    .nutri-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #1a4a6e;
+      border-radius: 14px;
+    }
+    .nutri-header:hover { background: #e4f0ff; }
+    .nutri-count { background: #cce5ff; color: #1a4a6e; border-radius: 20px; padding: 2px 10px; font-size: 0.78rem; font-weight: 600; }
+    .nutri-card .item-check.checked { background: #4a90c4; border-color: #4a90c4; }
+    .nutri-card .add-input { background: #f5fbff; border-color: #b8d8f0; }
+    .nutri-card .add-input:focus { border-color: #4a90c4; }
+    .nutri-card .add-btn { background: #4a90c4; }
+    .nutri-card .add-btn:hover { background: #2a70a4; }
+    .nutri-card .clear-btn { background: #e8f0ff; color: #2a508a; border-color: #b0c8e8; }
+    .nutri-card .clear-btn:hover { background: #d0e4f8; }
+    .nutri-add-to-shopping {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      background: #4a90c4;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: background 0.2s;
+    }
+    .nutri-add-to-shopping:hover { background: #2a70a4; }
   </style>
 </head>
 <body>
@@ -443,6 +546,22 @@
           <select class="section-select" id="apt-sec"><option value="">Section...</option></select>
         <button class="add-btn" onclick="addItem('apt')">+ Add</button>
       </div></div>
+    </div>
+  </div>
+
+  <!-- WEEKLY STAPLES -->
+  <div class="staples-card">
+    <div class="staples-header" onclick="toggleSection('staples-body','staples-chev')">
+      <div class="title">⭐ <span>Weekly Staples</span> <span class="staples-count" id="staples-count">0</span></div>
+      <span class="chevron open" id="staples-chev">▼</span>
+    </div>
+    <div class="staples-body" id="staples-body">
+      <button class="staples-add-all" onclick="addAllStaplesToMyList()">+ Add all staples to my list</button>
+      <div id="staples-list"></div>
+      <div class="staples-add-row">
+        <input class="staples-input" id="staples-input" placeholder="Add a staple..." spellcheck="true" onkeydown="if(event.key==='Enter')addStaple()" />
+        <button class="staples-btn" onclick="addStaple()">+ Add</button>
+      </div>
     </div>
   </div>
 
@@ -512,6 +631,29 @@
           <input class="qty-input" id="allison_avital-qty" type="number" min="1" max="99" value="1" title="Quantity" />
           <select class="section-select" id="allison_avital-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('allison_avital')">+ Add</button>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ALLISON NUTRITIONIST -->
+    <div class="nutri-card">
+      <div class="nutri-header" onclick="toggleSection('nutri-body','nutri-chev')">
+        <div class="title">🥗 <span>Nutritionist Reminders</span> <span class="nutri-count" id="allison_nutritionist-count">0</span></div>
+        <span class="chevron open" id="nutri-chev">▼</span>
+      </div>
+      <div class="section-body" id="nutri-body">
+        <button class="nutri-add-to-shopping" onclick="addNutriToShopping()">+ Add all to my shopping list</button>
+        <ul class="item-list" id="allison_nutritionist-items"></ul>
+        <div class="empty-msg" id="allison_nutritionist-empty">Add items your nutritionist recommended</div>
+        <button class="clear-btn" onclick="clearChecked('allison_nutritionist')">✕ Clear checked</button>
+        <div class="add-area"><div class="add-row">
+          <div class="add-input-wrap">
+            <input class="add-input" id="allison_nutritionist-input" placeholder="Add item..." spellcheck="true" oninput="onInput('allison_nutritionist')" onkeydown="onKey(event,'allison_nutritionist')" autocomplete="off" />
+            <div class="autocomplete-list" id="allison_nutritionist-ac" style="display:none"></div>
+          </div>
+          <input class="qty-input" id="allison_nutritionist-qty" type="number" min="1" max="99" value="1" title="Quantity" />
+          <select class="section-select" id="allison_nutritionist-sec"><option value="">Section...</option></select>
+          <button class="add-btn" onclick="addItem('allison_nutritionist')">+ Add</button>
         </div></div>
       </div>
     </div>
@@ -689,9 +831,21 @@
 
   let catalog = {};
   let items   = {};
+  let staples = [];   // { name, section, id }
   let history = [];
   let future  = [];
   let currentUser = localStorage.getItem('grocery_who') || '';
+
+  const DEFAULT_STAPLES = [
+    { name: 'Milk',          section: 'Dairy' },
+    { name: 'Eggs',          section: 'Dairy' },
+    { name: 'Butter',        section: 'Dairy' },
+    { name: 'Bread',         section: 'Bread & Wraps' },
+    { name: 'Olive oil',     section: 'Oils & Vinegar' },
+    { name: 'Cheese',        section: 'Dairy' },
+    { name: 'Yogurt',        section: 'Dairy' },
+    { name: 'Coffee',        section: 'Beverages' },
+  ];
 
   // ========== WHO AM I ==========
   window.setWho = function(name) {
@@ -713,6 +867,7 @@
     initWho();
     await loadCatalog();
     await loadItems();
+    await loadStaples();
     populateSectionDropdowns();
     renderAll();
   }
@@ -730,6 +885,17 @@
       if (!items[r.list_type]) items[r.list_type] = [];
       items[r.list_type].push(r);
     });
+  }
+
+  async function loadStaples() {
+    const { data } = await db.from('grocery_staples').select('*').order('name');
+    if (data && data.length) {
+      staples = data;
+    } else {
+      // Pre-populate with defaults on first load
+      const { data: inserted } = await db.from('grocery_staples').insert(DEFAULT_STAPLES).select();
+      staples = inserted || [];
+    }
   }
 
   function populateSectionDropdowns() {
@@ -755,11 +921,12 @@
 
   // ========== RENDER ==========
   function renderAll() {
-    const allLists = ['apt','allison','ruthie','avital','allison_ruthie','allison_avital','ruthie_avital'];
+    const allLists = ['apt','allison','ruthie','avital','allison_ruthie','allison_avital','ruthie_avital','allison_nutritionist'];
     allLists.forEach(k => renderList(k));
     renderMirror('ruthie_allison', 'allison_ruthie');
     renderMirror('avital_allison', 'allison_avital');
     renderMirror('avital_ruthie',  'ruthie_avital');
+    renderStaples();
     renderCatalog();
     updateUndoRedo();
   }
@@ -1183,6 +1350,86 @@
       name.classList.toggle('checked', newVal);
     }
   }
+
+  // ========== STAPLES ==========
+  function renderStaples() {
+    const container = document.getElementById('staples-list');
+    const countEl   = document.getElementById('staples-count');
+    if (!container) return;
+    container.innerHTML = '';
+    staples.forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'staple-row';
+      const name = document.createElement('span');
+      name.className = 'staple-name';
+      name.textContent = `${s.name} · ${s.section}`;
+      const del = document.createElement('button');
+      del.className = 'staple-delete';
+      del.textContent = '✕';
+      del.onclick = () => deleteStaple(s);
+      row.append(name, del);
+      container.appendChild(row);
+    });
+    if (countEl) countEl.textContent = staples.length;
+  }
+
+  window.addStaple = async function() {
+    const input = document.getElementById('staples-input');
+    const name  = input.value.trim();
+    if (!name) return;
+    const lower = name.toLowerCase();
+    const section = catalog[lower]?.section || 'Other';
+    const { data } = await db.from('grocery_staples').insert({ name, section }).select().single();
+    if (data) { staples.push(data); renderStaples(); input.value = ''; }
+  };
+
+  async function deleteStaple(s) {
+    await db.from('grocery_staples').delete().eq('id', s.id);
+    staples = staples.filter(x => x.id !== s.id);
+    renderStaples();
+  }
+
+  window.addAllStaplesToMyList = async function() {
+    if (!currentUser) { alert('Pick who you are first (top of page)'); return; }
+    const targetList = currentUser.toLowerCase();
+    const existing = (items[targetList] || []).map(i => i.item_name.toLowerCase());
+    const toAdd = staples.filter(s => !existing.includes(s.name.toLowerCase()));
+    if (!toAdd.length) { setStatus('All staples already on your list!'); return; }
+    for (const s of toAdd) {
+      const { data: newItem } = await db.from('grocery_items').insert({
+        list_type: targetList, item_name: s.name, section: s.section,
+        checked: false, added_by: currentUser, quantity: 1
+      }).select().single();
+      if (newItem) {
+        if (!items[targetList]) items[targetList] = [];
+        items[targetList].push(newItem);
+      }
+    }
+    renderAll();
+    setStatus(`Added ${toAdd.length} staple(s) to ${currentUser}'s list`);
+  };
+
+  // ========== NUTRITIONIST ==========
+  window.addNutriToShopping = async function() {
+    const nutriItems = items['allison_nutritionist'] || [];
+    const notChecked = nutriItems.filter(i => !i.checked);
+    if (!notChecked.length) { setStatus('No nutritionist items to add!'); return; }
+    const existing = (items['allison'] || []).map(i => i.item_name.toLowerCase());
+    const toAdd = notChecked.filter(s => !existing.includes(s.item_name.toLowerCase()));
+    if (!toAdd.length) { setStatus('All items already on your list!'); return; }
+    for (const s of toAdd) {
+      const { data: newItem } = await db.from('grocery_items').insert({
+        list_type: 'allison', item_name: s.item_name, section: s.section,
+        checked: false, added_by: 'Allison', quantity: s.quantity || 1
+      }).select().single();
+      if (newItem) {
+        if (!items['allison']) items['allison'] = [];
+        items['allison'].push(newItem);
+      }
+    }
+    renderAll();
+    setStatus(`Added ${toAdd.length} nutritionist item(s) to your shopping list`);
+  };
 
   window.shopClearChecked = async function() {
     const lists = PERSON_LISTS[currentUser] || [];
