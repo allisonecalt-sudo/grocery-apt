@@ -145,6 +145,26 @@
     }
     .item-name.checked { text-decoration: line-through; color: #aaa; }
     .item-added-by { font-size: 0.7rem; color: #bbb; }
+    .item-qty {
+      font-size: 0.78rem;
+      background: #e8f5e9;
+      color: #2d6a4f;
+      border-radius: 6px;
+      padding: 1px 7px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .qty-input {
+      width: 52px;
+      padding: 9px 6px;
+      border: 2px solid #e0e8e0;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      outline: none;
+      text-align: center;
+    }
+    .qty-input:focus { border-color: #52b788; }
 
     .item-delete {
       background: none; border: none; color: #ccc;
@@ -419,7 +439,8 @@
           <input class="add-input" id="apt-input" placeholder="Add item..." spellcheck="true" oninput="onInput('apt')" onkeydown="onKey(event,'apt')" autocomplete="off" />
           <div class="autocomplete-list" id="apt-ac" style="display:none"></div>
         </div>
-        <select class="section-select" id="apt-sec"><option value="">Section...</option></select>
+        <input class="qty-input" id="apt-qty" type="number" min="1" max="99" value="1" title="Quantity" />
+          <select class="section-select" id="apt-sec"><option value="">Section...</option></select>
         <button class="add-btn" onclick="addItem('apt')">+ Add</button>
       </div></div>
     </div>
@@ -448,6 +469,7 @@
             <input class="add-input" id="allison-input" placeholder="Add item..." spellcheck="true" oninput="onInput('allison')" onkeydown="onKey(event,'allison')" autocomplete="off" />
             <div class="autocomplete-list" id="allison-ac" style="display:none"></div>
           </div>
+          <input class="qty-input" id="allison-qty" type="number" min="1" max="99" value="1" title="Quantity" />
           <select class="section-select" id="allison-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('allison')">+ Add</button>
         </div></div>
@@ -467,6 +489,7 @@
             <input class="add-input" id="allison_ruthie-input" placeholder="Add item..." spellcheck="true" oninput="onInput('allison_ruthie')" onkeydown="onKey(event,'allison_ruthie')" autocomplete="off" />
             <div class="autocomplete-list" id="allison_ruthie-ac" style="display:none"></div>
           </div>
+          <input class="qty-input" id="allison_ruthie-qty" type="number" min="1" max="99" value="1" title="Quantity" />
           <select class="section-select" id="allison_ruthie-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('allison_ruthie')">+ Add</button>
         </div></div>
@@ -486,6 +509,7 @@
             <input class="add-input" id="allison_avital-input" placeholder="Add item..." spellcheck="true" oninput="onInput('allison_avital')" onkeydown="onKey(event,'allison_avital')" autocomplete="off" />
             <div class="autocomplete-list" id="allison_avital-ac" style="display:none"></div>
           </div>
+          <input class="qty-input" id="allison_avital-qty" type="number" min="1" max="99" value="1" title="Quantity" />
           <select class="section-select" id="allison_avital-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('allison_avital')">+ Add</button>
         </div></div>
@@ -509,6 +533,7 @@
             <input class="add-input" id="ruthie-input" placeholder="Add item..." spellcheck="true" oninput="onInput('ruthie')" onkeydown="onKey(event,'ruthie')" autocomplete="off" />
             <div class="autocomplete-list" id="ruthie-ac" style="display:none"></div>
           </div>
+          <input class="qty-input" id="ruthie-qty" type="number" min="1" max="99" value="1" title="Quantity" />
           <select class="section-select" id="ruthie-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('ruthie')">+ Add</button>
         </div></div>
@@ -528,6 +553,7 @@
             <input class="add-input" id="ruthie_allison-input" placeholder="Add item..." spellcheck="true" oninput="onInput('ruthie_allison')" onkeydown="onKey(event,'ruthie_allison')" autocomplete="off" />
             <div class="autocomplete-list" id="ruthie_allison-ac" style="display:none"></div>
           </div>
+          <input class="qty-input" id="ruthie_allison-qty" type="number" min="1" max="99" value="1" title="Quantity" />
           <select class="section-select" id="ruthie_allison-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('ruthie_allison')">+ Add</button>
         </div></div>
@@ -547,6 +573,7 @@
             <input class="add-input" id="ruthie_avital-input" placeholder="Add item..." spellcheck="true" oninput="onInput('ruthie_avital')" onkeydown="onKey(event,'ruthie_avital')" autocomplete="off" />
             <div class="autocomplete-list" id="ruthie_avital-ac" style="display:none"></div>
           </div>
+          <input class="qty-input" id="ruthie_avital-qty" type="number" min="1" max="99" value="1" title="Quantity" />
           <select class="section-select" id="ruthie_avital-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('ruthie_avital')">+ Add</button>
         </div></div>
@@ -570,6 +597,7 @@
             <input class="add-input" id="avital-input" placeholder="Add item..." spellcheck="true" oninput="onInput('avital')" onkeydown="onKey(event,'avital')" autocomplete="off" />
             <div class="autocomplete-list" id="avital-ac" style="display:none"></div>
           </div>
+          <input class="qty-input" id="avital-qty" type="number" min="1" max="99" value="1" title="Quantity" />
           <select class="section-select" id="avital-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('avital')">+ Add</button>
         </div></div>
@@ -589,6 +617,7 @@
             <input class="add-input" id="avital_allison-input" placeholder="Add item..." spellcheck="true" oninput="onInput('avital_allison')" onkeydown="onKey(event,'avital_allison')" autocomplete="off" />
             <div class="autocomplete-list" id="avital_allison-ac" style="display:none"></div>
           </div>
+          <input class="qty-input" id="avital_allison-qty" type="number" min="1" max="99" value="1" title="Quantity" />
           <select class="section-select" id="avital_allison-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('avital_allison')">+ Add</button>
         </div></div>
@@ -608,6 +637,7 @@
             <input class="add-input" id="avital_ruthie-input" placeholder="Add item..." spellcheck="true" oninput="onInput('avital_ruthie')" onkeydown="onKey(event,'avital_ruthie')" autocomplete="off" />
             <div class="autocomplete-list" id="avital_ruthie-ac" style="display:none"></div>
           </div>
+          <input class="qty-input" id="avital_ruthie-qty" type="number" min="1" max="99" value="1" title="Quantity" />
           <select class="section-select" id="avital_ruthie-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('avital_ruthie')">+ Add</button>
         </div></div>
@@ -793,12 +823,17 @@
 
     info.append(name, addedBy);
 
+    const qty = document.createElement('span');
+    qty.className = 'item-qty';
+    qty.textContent = `x${item.quantity || 1}`;
+    qty.style.display = (item.quantity && item.quantity > 1) ? '' : 'none';
+
     const del = document.createElement('button');
     del.className = 'item-delete';
     del.textContent = '✕';
     del.onclick = () => deleteItem(item, displayKey);
 
-    li.append(chk, info, del);
+    li.append(chk, info, qty, del);
     return li;
   }
 
@@ -867,8 +902,10 @@
     const canonKey = canonical(key);
     const input = document.getElementById(`${key}-input`);
     const sec   = document.getElementById(`${key}-sec`);
+    const qtyEl = document.getElementById(`${key}-qty`);
     const name  = input.value.trim();
     const section = sec.value;
+    const quantity = parseInt(qtyEl?.value) || 1;
     if (!name) return;
     if (!section) { setStatus('Please select a section'); return; }
     document.getElementById(`${key}-ac`).style.display = 'none';
@@ -881,7 +918,7 @@
 
     const { data: newItem } = await db.from('grocery_items').insert({
       list_type: canonKey, item_name: name, section, checked: false,
-      added_by: currentUser || ''
+      added_by: currentUser || '', quantity
     }).select().single();
 
     if (newItem) {
@@ -889,8 +926,8 @@
       items[canonKey].push(newItem);
       pushHistory({ type: 'add', item: newItem, canonKey });
       renderAll();
-      input.value = ''; sec.value = '';
-      setStatus(`Added "${name}"`);
+      input.value = ''; sec.value = ''; if (qtyEl) qtyEl.value = 1;
+      setStatus(`Added "${name}" x${quantity}`);
     }
   };
 
@@ -1113,6 +1150,13 @@
       meta.textContent = item.added_by ? `added by ${item.added_by}` : '';
 
       info.append(name, meta);
+
+      if (item.quantity && item.quantity > 1) {
+        const qtyTag = document.createElement('span');
+        qtyTag.className = 'item-qty';
+        qtyTag.textContent = `x${item.quantity}`;
+        row.appendChild(qtyTag);
+      }
 
       const tag = document.createElement('span');
       tag.className = 'shop-list-tag';
