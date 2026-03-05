@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🛒 Apt Grocery</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f0;
+      color: #2d3a2d;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #2d6a4f;
+      color: white;
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .header-row1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    header h1 { font-size: 1.15rem; font-weight: 700; }
+
+    .undo-redo { display: flex; gap: 8px; }
+    .undo-redo button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .undo-redo button:hover { background: rgba(255,255,255,0.35); }
+    .undo-redo button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* Who are you selector */
+    .who-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .who-label { font-size: 0.8rem; opacity: 0.85; white-space: nowrap; }
+    .who-btn {
+      border: 2px solid rgba(255,255,255,0.4);
+      background: transparent;
+      color: white;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .who-btn.selected { background: white; color: #2d6a4f; border-color: white; font-weight: 700; }
+
+    .main { padding: 16px; max-width: 600px; margin: 0 auto; }
+
+    /* === SECTION CARD === */
+    .section-card {
+      background: white;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      overflow: visible;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 700;
+      font-size: 1rem;
+      border-radius: 16px;
+    }
+    .section-header:hover { background: #f9fdf9; border-radius: 16px; }
+    .section-header .title { display: flex; align-items: center; gap: 8px; }
+    .section-header .count {
+      background: #e8f5e9; color: #2d6a4f;
+      border-radius: 20px; padding: 2px 10px;
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .chevron { font-size: 0.8rem; transition: transform 0.2s; }
+    .chevron.open { transform: rotate(180deg); }
+
+    .section-body { padding: 0 18px 14px; }
+    .section-body.collapsed { display: none; }
+
+    /* === SECTION GROUP HEADER inside list === */
+    .group-header {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #aaa;
+      padding: 10px 0 4px;
+    }
+
+    /* === ITEMS === */
+    .item-list { list-style: none; margin-bottom: 10px; }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+    .item-row:last-child { border-bottom: none; }
+
+    .item-check {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 2px solid #b0c4b0;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .item-check.checked { background: #52b788; border-color: #52b788; }
+    .item-check.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: bold; }
+
+    .item-info { flex: 1; min-width: 0; }
+    .item-name {
+      font-size: 0.93rem;
+      transition: all 0.2s;
+      display: block;
+    }
+    .item-name.checked { text-decoration: line-through; color: #aaa; }
+    .item-added-by { font-size: 0.7rem; color: #bbb; }
+
+    .item-delete {
+      background: none; border: none; color: #ccc;
+      cursor: pointer; font-size: 1rem;
+      padding: 2px 4px; border-radius: 4px;
+      transition: color 0.2s; flex-shrink: 0;
+    }
+    .item-delete:hover { color: #e07070; }
+
+    .empty-msg { color: #aaa; font-size: 0.88rem; font-style: italic; padding: 6px 0 4px; }
+
+    /* === ADD ITEM === */
+    .add-area { margin-top: 6px; }
+    .add-row { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+
+    .add-input-wrap { position: relative; flex: 1; min-width: 130px; }
+    .add-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 2px solid #e0e8e0;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .add-input:focus { border-color: #52b788; }
+
+    .autocomplete-list {
+      position: absolute;
+      top: calc(100% + 4px); left: 0; right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      z-index: 200;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .autocomplete-item {
+      padding: 9px 14px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+    .autocomplete-item:hover { background: #f0f9f4; }
+    .autocomplete-item .ac-section { font-size: 0.75rem; color: #888; }
+
+    .section-select {
+      padding: 9px 8px;
+      border: 2px solid #e0e8e0;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      outline: none;
+      background: white;
+      color: #2d3a2d;
+      cursor: pointer;
+      max-width: 110px;
+    }
+
+    .add-btn {
+      padding: 9px 14px;
+      background: #52b788;
+      color: white; border: none;
+      border-radius: 10px;
+      font-size: 0.88rem; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .add-btn:hover { background: #40916c; }
+
+    .clear-btn {
+      margin-top: 8px;
+      padding: 6px 12px;
+      background: #fff0f0; color: #c0605a;
+      border: 1px solid #f0c0be;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .clear-btn:hover { background: #ffe0de; }
+
+    /* === TABS === */
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab-btn {
+      flex: 1; padding: 10px;
+      border: none; border-radius: 12px;
+      font-size: 0.92rem; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white; color: #666;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .tab-btn.active-allison { background: #d4edda; color: #1a5c3a; }
+    .tab-btn.active-ruthie  { background: #dde4ff; color: #2a3a8c; }
+    .tab-btn.active-avital  { background: #fff3cd; color: #7a5a00; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* === PERSON COLORS === */
+    .person-allison .section-header { color: #1a5c3a; }
+    .person-allison .count { background: #d4edda; color: #1a5c3a; }
+    .person-ruthie .section-header { color: #2a3a8c; }
+    .person-ruthie .count { background: #dde4ff; color: #2a3a8c; }
+    .person-avital .section-header { color: #7a5a00; }
+    .person-avital .count { background: #fff3cd; color: #7a5a00; }
+
+    /* === CATALOG EDITOR === */
+    .catalog-toggle { text-align: center; margin-bottom: 20px; }
+    .catalog-toggle button {
+      background: none; border: 1px solid #ccc;
+      border-radius: 20px; padding: 6px 16px;
+      font-size: 0.82rem; color: #888; cursor: pointer;
+    }
+    .catalog-editor {
+      background: white; border-radius: 16px;
+      padding: 16px 18px; margin-bottom: 16px; display: none;
+    }
+    .catalog-editor.open { display: block; }
+    .catalog-editor h3 { margin-bottom: 12px; font-size: 0.95rem; color: #555; }
+    .catalog-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .catalog-table th { text-align: left; padding: 6px 8px; color: #888; font-weight: 600; border-bottom: 2px solid #f0f0f0; }
+    .catalog-table td { padding: 6px 8px; border-bottom: 1px solid #f5f5f5; }
+    .catalog-section-select {
+      border: 1px solid #ddd; border-radius: 6px;
+      padding: 3px 6px; font-size: 0.85rem; background: white;
+    }
+
+    .status-bar { text-align: center; font-size: 0.78rem; color: #aaa; padding: 8px; }
+
+    @media (max-width: 420px) {
+      .add-row { flex-direction: column; }
+      .add-btn, .section-select { width: 100%; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-row1">
+    <h1>🛒 Apt Grocery</h1>
+    <div class="undo-redo">
+      <button id="undoBtn" onclick="undo()" disabled>↩ Undo</button>
+      <button id="redoBtn" onclick="redo()" disabled>↪ Redo</button>
+    </div>
+  </div>
+  <div class="who-row">
+    <span class="who-label">I am:</span>
+    <button class="who-btn" id="who-Allison" onclick="setWho('Allison')">Allison</button>
+    <button class="who-btn" id="who-Ruthie"  onclick="setWho('Ruthie')">Ruthie</button>
+    <button class="who-btn" id="who-Avital"  onclick="setWho('Avital')">Avital</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- APT-WIDE -->
+  <div class="section-card" id="apt-card">
+    <div class="section-header" onclick="toggleSection('apt-body','apt-chev')">
+      <div class="title">🏠 <span>Apartment List</span> <span class="count" id="apt-count">0</span></div>
+      <span class="chevron open" id="apt-chev">▼</span>
+    </div>
+    <div class="section-body" id="apt-body">
+      <ul class="item-list" id="apt-items"></ul>
+      <div class="empty-msg" id="apt-empty">Nothing here yet</div>
+      <button class="clear-btn" onclick="clearChecked('apt')">✕ Clear checked</button>
+      <div class="add-area"><div class="add-row">
+        <div class="add-input-wrap">
+          <input class="add-input" id="apt-input" placeholder="Add item..." oninput="onInput('apt')" onkeydown="onKey(event,'apt')" autocomplete="off" />
+          <div class="autocomplete-list" id="apt-ac" style="display:none"></div>
+        </div>
+        <select class="section-select" id="apt-sec"><option value="">Section...</option></select>
+        <button class="add-btn" onclick="addItem('apt')">+ Add</button>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active-allison" id="tab-allison" onclick="switchTab('allison')">Allison</button>
+    <button class="tab-btn" id="tab-ruthie"  onclick="switchTab('ruthie')">Ruthie</button>
+    <button class="tab-btn" id="tab-avital"  onclick="switchTab('avital')">Avital</button>
+  </div>
+
+  <!-- ALLISON TAB -->
+  <div class="tab-content active" id="content-allison">
+    <div class="section-card person-allison">
+      <div class="section-header" onclick="toggleSection('allison-body','allison-chev')">
+        <div class="title">👤 <span>Allison's List</span> <span class="count" id="allison-count">0</span></div>
+        <span class="chevron open" id="allison-chev">▼</span>
+      </div>
+      <div class="section-body" id="allison-body">
+        <ul class="item-list" id="allison-items"></ul>
+        <div class="empty-msg" id="allison-empty">Nothing here yet</div>
+        <button class="clear-btn" onclick="clearChecked('allison')">✕ Clear checked</button>
+        <div class="add-area"><div class="add-row">
+          <div class="add-input-wrap">
+            <input class="add-input" id="allison-input" placeholder="Add item..." oninput="onInput('allison')" onkeydown="onKey(event,'allison')" autocomplete="off" />
+            <div class="autocomplete-list" id="allison-ac" style="display:none"></div>
+          </div>
+          <select class="section-select" id="allison-sec"><option value="">Section...</option></select>
+          <button class="add-btn" onclick="addItem('allison')">+ Add</button>
+        </div></div>
+      </div>
+    </div>
+    <div class="section-card person-allison">
+      <div class="section-header" onclick="toggleSection('allison_ruthie-body','allison_ruthie-chev')">
+        <div class="title">👥 <span>Allison + Ruthie</span> <span class="count" id="allison_ruthie-count">0</span></div>
+        <span class="chevron open" id="allison_ruthie-chev">▼</span>
+      </div>
+      <div class="section-body" id="allison_ruthie-body">
+        <ul class="item-list" id="allison_ruthie-items"></ul>
+        <div class="empty-msg" id="allison_ruthie-empty">Nothing here yet</div>
+        <button class="clear-btn" onclick="clearChecked('allison_ruthie')">✕ Clear checked</button>
+        <div class="add-area"><div class="add-row">
+          <div class="add-input-wrap">
+            <input class="add-input" id="allison_ruthie-input" placeholder="Add item..." oninput="onInput('allison_ruthie')" onkeydown="onKey(event,'allison_ruthie')" autocomplete="off" />
+            <div class="autocomplete-list" id="allison_ruthie-ac" style="display:none"></div>
+          </div>
+          <select class="section-select" id="allison_ruthie-sec"><option value="">Section...</option></select>
+          <button class="add-btn" onclick="addItem('allison_ruthie')">+ Add</button>
+        </div></div>
+      </div>
+    </div>
+    <div class="section-card person-allison">
+      <div class="section-header" onclick="toggleSection('allison_avital-body','allison_avital-chev')">
+        <div class="title">👥 <span>Allison + Avital</span> <span class="count" id="allison_avital-count">0</span></div>
+        <span class="chevron open" id="allison_avital-chev">▼</span>
+      </div>
+      <div class="section-body" id="allison_avital-body">
+        <ul class="item-list" id="allison_avital-items"></ul>
+        <div class="empty-msg" id="allison_avital-empty">Nothing here yet</div>
+        <button class="clear-btn" onclick="clearChecked('allison_avital')">✕ Clear checked</button>
+        <div class="add-area"><div class="add-row">
+          <div class="add-input-wrap">
+            <input class="add-input" id="allison_avital-input" placeholder="Add item..." oninput="onInput('allison_avital')" onkeydown="onKey(event,'allison_avital')" autocomplete="off" />
+            <div class="autocomplete-list" id="allison_avital-ac" style="display:none"></div>
+          </div>
+          <select class="section-select" id="allison_avital-sec"><option value="">Section...</option></select>
+          <button class="add-btn" onclick="addItem('allison_avital')">+ Add</button>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RUTHIE TAB -->
+  <div class="tab-content" id="content-ruthie">
+    <div class="section-card person-ruthie">
+      <div class="section-header" onclick="toggleSection('ruthie-body','ruthie-chev')">
+        <div class="title">👤 <span>Ruthie's List</span> <span class="count" id="ruthie-count">0</span></div>
+        <span class="chevron open" id="ruthie-chev">▼</span>
+      </div>
+      <div class="section-body" id="ruthie-body">
+        <ul class="item-list" id="ruthie-items"></ul>
+        <div class="empty-msg" id="ruthie-empty">Nothing here yet</div>
+        <button class="clear-btn" onclick="clearChecked('ruthie')">✕ Clear checked</button>
+        <div class="add-area"><div class="add-row">
+          <div class="add-input-wrap">
+            <input class="add-input" id="ruthie-input" placeholder="Add item..." oninput="onInput('ruthie')" onkeydown="onKey(event,'ruthie')" autocomplete="off" />
+            <div class="autocomplete-list" id="ruthie-ac" style="display:none"></div>
+          </div>
+          <select class="section-select" id="ruthie-sec"><option value="">Section...</option></select>
+          <button class="add-btn" onclick="addItem('ruthie')">+ Add</button>
+        </div></div>
+      </div>
+    </div>
+    <div class="section-card person-ruthie">
+      <div class="section-header" onclick="toggleSection('ruthie_allison-body','ruthie_allison-chev')">
+        <div class="title">👥 <span>Ruthie + Allison</span> <span class="count" id="ruthie_allison-count">0</span></div>
+        <span class="chevron open" id="ruthie_allison-chev">▼</span>
+      </div>
+      <div class="section-body" id="ruthie_allison-body">
+        <ul class="item-list" id="ruthie_allison-items"></ul>
+        <div class="empty-msg" id="ruthie_allison-empty">Nothing here yet</div>
+        <button class="clear-btn" onclick="clearChecked('allison_ruthie')">✕ Clear checked</button>
+        <div class="add-area"><div class="add-row">
+          <div class="add-input-wrap">
+            <input class="add-input" id="ruthie_allison-input" placeholder="Add item..." oninput="onInput('ruthie_allison')" onkeydown="onKey(event,'ruthie_allison')" autocomplete="off" />
+            <div class="autocomplete-list" id="ruthie_allison-ac" style="display:none"></div>
+          </div>
+          <select class="section-select" id="ruthie_allison-sec"><option value="">Section...</option></select>
+          <button class="add-btn" onclick="addItem('ruthie_allison')">+ Add</button>
+        </div></div>
+      </div>
+    </div>
+    <div class="section-card person-ruthie">
+      <div class="section-header" onclick="toggleSection('ruthie_avital-body','ruthie_avital-chev')">
+        <div class="title">👥 <span>Ruthie + Avital</span> <span class="count" id="ruthie_avital-count">0</span></div>
+        <span class="chevron open" id="ruthie_avital-chev">▼</span>
+      </div>
+      <div class="section-body" id="ruthie_avital-body">
+        <ul class="item-list" id="ruthie_avital-items"></ul>
+        <div class="empty-msg" id="ruthie_avital-empty">Nothing here yet</div>
+        <button class="clear-btn" onclick="clearChecked('ruthie_avital')">✕ Clear checked</button>
+        <div class="add-area"><div class="add-row">
+          <div class="add-input-wrap">
+            <input class="add-input" id="ruthie_avital-input" placeholder="Add item..." oninput="onInput('ruthie_avital')" onkeydown="onKey(event,'ruthie_avital')" autocomplete="off" />
+            <div class="autocomplete-list" id="ruthie_avital-ac" style="display:none"></div>
+          </div>
+          <select class="section-select" id="ruthie_avital-sec"><option value="">Section...</option></select>
+          <button class="add-btn" onclick="addItem('ruthie_avital')">+ Add</button>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVITAL TAB -->
+  <div class="tab-content" id="content-avital">
+    <div class="section-card person-avital">
+      <div class="section-header" onclick="toggleSection('avital-body','avital-chev')">
+        <div class="title">👤 <span>Avital's List</span> <span class="count" id="avital-count">0</span></div>
+        <span class="chevron open" id="avital-chev">▼</span>
+      </div>
+      <div class="section-body" id="avital-body">
+        <ul class="item-list" id="avital-items"></ul>
+        <div class="empty-msg" id="avital-empty">Nothing here yet</div>
+        <button class="clear-btn" onclick="clearChecked('avital')">✕ Clear checked</button>
+        <div class="add-area"><div class="add-row">
+          <div class="add-input-wrap">
+            <input class="add-input" id="avital-input" placeholder="Add item..." oninput="onInput('avital')" onkeydown="onKey(event,'avital')" autocomplete="off" />
+            <div class="autocomplete-list" id="avital-ac" style="display:none"></div>
+          </div>
+          <select class="section-select" id="avital-sec"><option value="">Section...</option></select>
+          <button class="add-btn" onclick="addItem('avital')">+ Add</button>
+        </div></div>
+      </div>
+    </div>
+    <div class="section-card person-avital">
+      <div class="section-header" onclick="toggleSection('avital_allison-body','avital_allison-chev')">
+        <div class="title">👥 <span>Avital + Allison</span> <span class="count" id="avital_allison-count">0</span></div>
+        <span class="chevron open" id="avital_allison-chev">▼</span>
+      </div>
+      <div class="section-body" id="avital_allison-body">
+        <ul class="item-list" id="avital_allison-items"></ul>
+        <div class="empty-msg" id="avital_allison-empty">Nothing here yet</div>
+        <button class="clear-btn" onclick="clearChecked('allison_avital')">✕ Clear checked</button>
+        <div class="add-area"><div class="add-row">
+          <div class="add-input-wrap">
+            <input class="add-input" id="avital_allison-input" placeholder="Add item..." oninput="onInput('avital_allison')" onkeydown="onKey(event,'avital_allison')" autocomplete="off" />
+            <div class="autocomplete-list" id="avital_allison-ac" style="display:none"></div>
+          </div>
+          <select class="section-select" id="avital_allison-sec"><option value="">Section...</option></select>
+          <button class="add-btn" onclick="addItem('avital_allison')">+ Add</button>
+        </div></div>
+      </div>
+    </div>
+    <div class="section-card person-avital">
+      <div class="section-header" onclick="toggleSection('avital_ruthie-body','avital_ruthie-chev')">
+        <div class="title">👥 <span>Avital + Ruthie</span> <span class="count" id="avital_ruthie-count">0</span></div>
+        <span class="chevron open" id="avital_ruthie-chev">▼</span>
+      </div>
+      <div class="section-body" id="avital_ruthie-body">
+        <ul class="item-list" id="avital_ruthie-items"></ul>
+        <div class="empty-msg" id="avital_ruthie-empty">Nothing here yet</div>
+        <button class="clear-btn" onclick="clearChecked('ruthie_avital')">✕ Clear checked</button>
+        <div class="add-area"><div class="add-row">
+          <div class="add-input-wrap">
+            <input class="add-input" id="avital_ruthie-input" placeholder="Add item..." oninput="onInput('avital_ruthie')" onkeydown="onKey(event,'avital_ruthie')" autocomplete="off" />
+            <div class="autocomplete-list" id="avital_ruthie-ac" style="display:none"></div>
+          </div>
+          <select class="section-select" id="avital_ruthie-sec"><option value="">Section...</option></select>
+          <button class="add-btn" onclick="addItem('avital_ruthie')">+ Add</button>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="catalog-toggle">
+    <button onclick="toggleCatalog()">⚙ Edit item catalog</button>
+  </div>
+  <div class="catalog-editor" id="catalog-editor">
+    <h3>Item Catalog — change any section</h3>
+    <table class="catalog-table">
+      <thead><tr><th>Item</th><th>Section</th></tr></thead>
+      <tbody id="catalog-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="status-bar" id="status-bar"></div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://hpiyvnfhoqnnnotrmwaz.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwaXl2bmZob3Fubm5vdHJtd2F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NzIwNDEsImV4cCI6MjA4ODA0ODA0MX0.AsGhYitkSnyVMwpJII05UseS_gICaXiCy7d8iHsr6Qw';
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const SECTIONS = ['Produce','Dairy','Meat & Fish','Bakery','Frozen','Pantry','Snacks','Beverages','Cleaning','Personal Care','Other'];
+
+  const ALIAS = {
+    ruthie_allison: 'allison_ruthie',
+    avital_allison: 'allison_avital',
+    avital_ruthie:  'ruthie_avital',
+  };
+  function canonical(k) { return ALIAS[k] || k; }
+
+  let catalog = {};
+  let items   = {};
+  let history = [];
+  let future  = [];
+  let currentUser = localStorage.getItem('grocery_who') || '';
+
+  // ========== WHO AM I ==========
+  window.setWho = function(name) {
+    currentUser = name;
+    localStorage.setItem('grocery_who', name);
+    document.querySelectorAll('.who-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById(`who-${name}`).classList.add('selected');
+  };
+
+  function initWho() {
+    if (currentUser) {
+      const btn = document.getElementById(`who-${currentUser}`);
+      if (btn) btn.classList.add('selected');
+    }
+  }
+
+  // ========== INIT ==========
+  async function init() {
+    initWho();
+    await loadCatalog();
+    await loadItems();
+    populateSectionDropdowns();
+    renderAll();
+  }
+
+  async function loadCatalog() {
+    const { data } = await db.from('grocery_catalog').select('*').order('name');
+    catalog = {};
+    (data || []).forEach(r => catalog[r.name.toLowerCase()] = { section: r.section, id: r.id });
+  }
+
+  async function loadItems() {
+    const { data } = await db.from('grocery_items').select('*').order('created_at');
+    items = {};
+    (data || []).forEach(r => {
+      if (!items[r.list_type]) items[r.list_type] = [];
+      items[r.list_type].push(r);
+    });
+  }
+
+  function populateSectionDropdowns() {
+    document.querySelectorAll('.section-select').forEach(sel => {
+      sel.innerHTML = '<option value="">Section...</option>';
+      SECTIONS.forEach(s => {
+        const o = document.createElement('option');
+        o.value = o.textContent = s;
+        sel.appendChild(o);
+      });
+    });
+  }
+
+  // ========== SORT ==========
+  function sortItems(list) {
+    return [...list].sort((a, b) => {
+      const si = SECTIONS.indexOf(a.section);
+      const sj = SECTIONS.indexOf(b.section);
+      if (si !== sj) return si - sj;
+      return a.item_name.localeCompare(b.item_name);
+    });
+  }
+
+  // ========== RENDER ==========
+  function renderAll() {
+    const allLists = ['apt','allison','ruthie','avital','allison_ruthie','allison_avital','ruthie_avital'];
+    allLists.forEach(k => renderList(k));
+    renderMirror('ruthie_allison', 'allison_ruthie');
+    renderMirror('avital_allison', 'allison_avital');
+    renderMirror('avital_ruthie',  'ruthie_avital');
+    renderCatalog();
+    updateUndoRedo();
+  }
+
+  function renderList(key) {
+    const ul    = document.getElementById(`${key}-items`);
+    const empty = document.getElementById(`${key}-empty`);
+    const count = document.getElementById(`${key}-count`);
+    if (!ul) return;
+    const list = sortItems(items[key] || []);
+    ul.innerHTML = '';
+    buildGroupedList(ul, list, key);
+    empty.style.display = list.length ? 'none' : 'block';
+    count.textContent = list.length;
+  }
+
+  function renderMirror(mirrorKey, canonKey) {
+    const ul    = document.getElementById(`${mirrorKey}-items`);
+    const empty = document.getElementById(`${mirrorKey}-empty`);
+    const count = document.getElementById(`${mirrorKey}-count`);
+    if (!ul) return;
+    const list = sortItems(items[canonKey] || []);
+    ul.innerHTML = '';
+    buildGroupedList(ul, list, mirrorKey);
+    empty.style.display = list.length ? 'none' : 'block';
+    count.textContent = list.length;
+  }
+
+  function buildGroupedList(ul, sortedList, displayKey) {
+    let lastSection = null;
+    sortedList.forEach(item => {
+      if (item.section !== lastSection) {
+        const gh = document.createElement('li');
+        gh.className = 'group-header';
+        gh.textContent = item.section;
+        ul.appendChild(gh);
+        lastSection = item.section;
+      }
+      ul.appendChild(makeRow(item, displayKey));
+    });
+  }
+
+  function makeRow(item, displayKey) {
+    const li = document.createElement('li');
+    li.className = 'item-row';
+
+    const chk = document.createElement('div');
+    chk.className = 'item-check' + (item.checked ? ' checked' : '');
+    chk.onclick = () => toggleCheck(item, displayKey);
+
+    const info = document.createElement('div');
+    info.className = 'item-info';
+
+    const name = document.createElement('span');
+    name.className = 'item-name' + (item.checked ? ' checked' : '');
+    name.textContent = item.item_name;
+
+    const addedBy = document.createElement('span');
+    addedBy.className = 'item-added-by';
+    addedBy.textContent = item.added_by ? `added by ${item.added_by}` : '';
+
+    info.append(name, addedBy);
+
+    const del = document.createElement('button');
+    del.className = 'item-delete';
+    del.textContent = '✕';
+    del.onclick = () => deleteItem(item, displayKey);
+
+    li.append(chk, info, del);
+    return li;
+  }
+
+  function renderCatalog() {
+    const tbody = document.getElementById('catalog-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    Object.entries(catalog).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, data]) => {
+      const tr = document.createElement('tr');
+      const tdName = document.createElement('td');
+      tdName.textContent = name;
+      const tdSec = document.createElement('td');
+      const sel = document.createElement('select');
+      sel.className = 'catalog-section-select';
+      SECTIONS.forEach(s => {
+        const o = document.createElement('option');
+        o.value = o.textContent = s;
+        if (s === data.section) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.onchange = () => updateCatalogSection(name, data.id, sel.value);
+      tdSec.appendChild(sel);
+      tr.append(tdName, tdSec);
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ========== AUTOCOMPLETE ==========
+  window.onInput = function(key) {
+    const input = document.getElementById(`${key}-input`);
+    const ac    = document.getElementById(`${key}-ac`);
+    const sec   = document.getElementById(`${key}-sec`);
+    const val   = input.value.toLowerCase().trim();
+    ac.innerHTML = ''; ac.style.display = 'none';
+    if (!val) return;
+    const exact = catalog[val];
+    if (exact) { sec.value = exact.section; }
+    const matches = Object.entries(catalog).filter(([n]) => n.includes(val)).slice(0, 8);
+    if (!matches.length) return;
+    matches.forEach(([name, data]) => {
+      const div = document.createElement('div');
+      div.className = 'autocomplete-item';
+      div.innerHTML = `<span>${name}</span><span class="ac-section">${data.section}</span>`;
+      div.onmousedown = (e) => {
+        e.preventDefault();
+        input.value = name;
+        sec.value = data.section;
+        ac.style.display = 'none';
+      };
+      ac.appendChild(div);
+    });
+    ac.style.display = 'block';
+  };
+
+  window.onKey = function(e, key) {
+    if (e.key === 'Enter') addItem(key);
+    if (e.key === 'Escape') document.getElementById(`${key}-ac`).style.display = 'none';
+  };
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.autocomplete-list').forEach(el => el.style.display = 'none');
+  });
+
+  // ========== ADD ==========
+  window.addItem = async function(key) {
+    const canonKey = canonical(key);
+    const input = document.getElementById(`${key}-input`);
+    const sec   = document.getElementById(`${key}-sec`);
+    const name  = input.value.trim();
+    const section = sec.value;
+    if (!name) return;
+    if (!section) { setStatus('Please select a section'); return; }
+    document.getElementById(`${key}-ac`).style.display = 'none';
+
+    const lower = name.toLowerCase();
+    if (!catalog[lower]) {
+      const { data: catRow } = await db.from('grocery_catalog').insert({ name: lower, section }).select().single();
+      if (catRow) catalog[lower] = { section, id: catRow.id };
+    }
+
+    const { data: newItem } = await db.from('grocery_items').insert({
+      list_type: canonKey, item_name: name, section, checked: false,
+      added_by: currentUser || ''
+    }).select().single();
+
+    if (newItem) {
+      if (!items[canonKey]) items[canonKey] = [];
+      items[canonKey].push(newItem);
+      pushHistory({ type: 'add', item: newItem, canonKey });
+      renderAll();
+      input.value = ''; sec.value = '';
+      setStatus(`Added "${name}"`);
+    }
+  };
+
+  // ========== CHECK ==========
+  async function toggleCheck(item, displayKey) {
+    const newVal = !item.checked;
+    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
+    const canonKey = canonical(displayKey);
+    const stored = (items[canonKey] || []).find(i => i.id === item.id);
+    if (stored) {
+      pushHistory({ type: newVal ? 'check' : 'uncheck', item: { ...stored }, canonKey });
+      stored.checked = newVal;
+    }
+    renderAll();
+  }
+
+  // ========== DELETE ==========
+  async function deleteItem(item, displayKey) {
+    const canonKey = canonical(displayKey);
+    await db.from('grocery_items').delete().eq('id', item.id);
+    items[canonKey] = (items[canonKey] || []).filter(i => i.id !== item.id);
+    pushHistory({ type: 'delete', item, canonKey });
+    renderAll();
+    setStatus(`Removed "${item.item_name}"`);
+  }
+
+  // ========== CLEAR CHECKED ==========
+  window.clearChecked = async function(key) {
+    const canonKey = canonical(key);
+    const checked = (items[canonKey] || []).filter(i => i.checked);
+    if (!checked.length) return;
+    await db.from('grocery_items').delete().in('id', checked.map(i => i.id));
+    items[canonKey] = (items[canonKey] || []).filter(i => !i.checked);
+    checked.forEach(item => pushHistory({ type: 'delete', item, canonKey }));
+    renderAll();
+    setStatus(`Cleared ${checked.length} item(s)`);
+  };
+
+  // ========== CATALOG ==========
+  async function updateCatalogSection(name, id, newSection) {
+    await db.from('grocery_catalog').update({ section: newSection }).eq('id', id);
+    catalog[name].section = newSection;
+    setStatus(`Updated "${name}" → ${newSection}`);
+  }
+  window.toggleCatalog = function() {
+    document.getElementById('catalog-editor').classList.toggle('open');
+  };
+
+  // ========== UNDO / REDO ==========
+  function pushHistory(action) { history.push(action); future = []; updateUndoRedo(); }
+
+  window.undo = async function() {
+    if (!history.length) return;
+    const action = history.pop(); future.push(action);
+    await reverseAction(action); updateUndoRedo();
+  };
+  window.redo = async function() {
+    if (!future.length) return;
+    const action = future.pop(); history.push(action);
+    await applyAction(action); updateUndoRedo();
+  };
+
+  async function reverseAction({ type, item, canonKey }) {
+    if (type === 'add') {
+      await db.from('grocery_items').delete().eq('id', item.id);
+      items[canonKey] = (items[canonKey] || []).filter(i => i.id !== item.id);
+    } else if (type === 'delete') {
+      const { data: r } = await db.from('grocery_items').insert({
+        list_type: item.list_type, item_name: item.item_name,
+        section: item.section, checked: item.checked, added_by: item.added_by
+      }).select().single();
+      if (r) { if (!items[canonKey]) items[canonKey] = []; items[canonKey].push(r); item.id = r.id; }
+    } else if (type === 'check') {
+      await db.from('grocery_items').update({ checked: false }).eq('id', item.id);
+      const s = (items[canonKey] || []).find(i => i.id === item.id);
+      if (s) s.checked = false;
+    } else if (type === 'uncheck') {
+      await db.from('grocery_items').update({ checked: true }).eq('id', item.id);
+      const s = (items[canonKey] || []).find(i => i.id === item.id);
+      if (s) s.checked = true;
+    }
+    renderAll();
+  }
+
+  async function applyAction({ type, item, canonKey }) {
+    if (type === 'add') {
+      const { data: r } = await db.from('grocery_items').insert({
+        list_type: item.list_type, item_name: item.item_name,
+        section: item.section, checked: item.checked, added_by: item.added_by
+      }).select().single();
+      if (r) { if (!items[canonKey]) items[canonKey] = []; items[canonKey].push(r); item.id = r.id; }
+    } else if (type === 'delete') {
+      await db.from('grocery_items').delete().eq('id', item.id);
+      items[canonKey] = (items[canonKey] || []).filter(i => i.id !== item.id);
+    } else if (type === 'check') {
+      await db.from('grocery_items').update({ checked: true }).eq('id', item.id);
+      const s = (items[canonKey] || []).find(i => i.id === item.id);
+      if (s) s.checked = true;
+    } else if (type === 'uncheck') {
+      await db.from('grocery_items').update({ checked: false }).eq('id', item.id);
+      const s = (items[canonKey] || []).find(i => i.id === item.id);
+      if (s) s.checked = false;
+    }
+    renderAll();
+  }
+
+  function updateUndoRedo() {
+    document.getElementById('undoBtn').disabled = !history.length;
+    document.getElementById('redoBtn').disabled = !future.length;
+  }
+
+  // ========== TABS ==========
+  window.switchTab = function(person) {
+    ['allison','ruthie','avital'].forEach(p => {
+      document.getElementById(`content-${p}`).classList.toggle('active', p === person);
+      const btn = document.getElementById(`tab-${p}`);
+      btn.className = 'tab-btn';
+      if (p === person) btn.classList.add(`active-${p}`);
+    });
+  };
+
+  window.toggleSection = function(bodyId, chevId) {
+    document.getElementById(bodyId).classList.toggle('collapsed');
+    document.getElementById(chevId).classList.toggle('open');
+  };
+
+  function setStatus(msg) {
+    const bar = document.getElementById('status-bar');
+    bar.textContent = msg;
+    setTimeout(() => bar.textContent = '', 3000);
+  }
+
+  init();
+</script>
+</body>
+</html>
