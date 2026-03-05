@@ -556,11 +556,17 @@
       <span class="chevron open" id="staples-chev">▼</span>
     </div>
     <div class="staples-body" id="staples-body">
-      <button class="staples-add-all" onclick="addAllStaplesToMyList()">+ Add all staples to my list</button>
-      <div id="staples-list"></div>
-      <div class="staples-add-row">
-        <input class="staples-input" id="staples-input" placeholder="Add a staple..." spellcheck="true" onkeydown="if(event.key==='Enter')addStaple()" />
-        <button class="staples-btn" onclick="addStaple()">+ Add</button>
+      <div id="staples-no-user" style="color:#aaa;font-style:italic;font-size:0.88rem;padding:6px 0 10px;display:none">Select who you are (top of page) to see your staples</div>
+      <div id="staples-user-content" style="display:none">
+        <div class="staples-add-row" style="margin-bottom:12px">
+          <button class="staples-add-all" style="margin-bottom:0;flex:1" onclick="addAllStaplesToList()">+ Add all staples to:</button>
+          <select class="section-select" id="staples-target-list" style="max-width:140px"></select>
+        </div>
+        <div id="staples-list"></div>
+        <div class="staples-add-row">
+          <input class="staples-input" id="staples-input" placeholder="Add a staple..." spellcheck="true" onkeydown="if(event.key==='Enter')addStaple()" />
+          <button class="staples-btn" onclick="addStaple()">+ Add</button>
+        </div>
       </div>
     </div>
   </div>
@@ -836,23 +842,28 @@
   let future  = [];
   let currentUser = localStorage.getItem('grocery_who') || '';
 
-  const DEFAULT_STAPLES = [
-    { name: 'Milk',          section: 'Dairy' },
-    { name: 'Eggs',          section: 'Dairy' },
-    { name: 'Butter',        section: 'Dairy' },
-    { name: 'Bread',         section: 'Bread & Wraps' },
-    { name: 'Olive oil',     section: 'Oils & Vinegar' },
-    { name: 'Cheese',        section: 'Dairy' },
-    { name: 'Yogurt',        section: 'Dairy' },
-    { name: 'Coffee',        section: 'Beverages' },
-  ];
+  const DEFAULT_STAPLES = {
+    Allison: [
+      { name: 'Milk', section: 'Dairy' }, { name: 'Eggs', section: 'Dairy' },
+      { name: 'Butter', section: 'Dairy' }, { name: 'Bread', section: 'Bread & Wraps' },
+      { name: 'Olive oil', section: 'Oils & Vinegar' }, { name: 'Coffee', section: 'Beverages' },
+    ],
+    Ruthie: [
+      { name: 'Milk', section: 'Dairy' }, { name: 'Bread', section: 'Bread & Wraps' },
+    ],
+    Avital: [
+      { name: 'Milk', section: 'Dairy' }, { name: 'Bread', section: 'Bread & Wraps' },
+    ],
+  };
 
   // ========== WHO AM I ==========
-  window.setWho = function(name) {
+  window.setWho = async function(name) {
     currentUser = name;
     localStorage.setItem('grocery_who', name);
     document.querySelectorAll('.who-btn').forEach(b => b.classList.remove('selected'));
     document.getElementById(`who-${name}`).classList.add('selected');
+    await loadStaples();
+    renderStaples();
   };
 
   function initWho() {
@@ -888,13 +899,19 @@
   }
 
   async function loadStaples() {
-    const { data } = await db.from('grocery_staples').select('*').order('name');
+    if (!currentUser) { staples = []; return; }
+    const { data } = await db.from('grocery_staples').select('*').eq('owner', currentUser).order('name');
     if (data && data.length) {
       staples = data;
     } else {
-      // Pre-populate with defaults on first load
-      const { data: inserted } = await db.from('grocery_staples').insert(DEFAULT_STAPLES).select();
-      staples = inserted || [];
+      // Pre-populate with defaults on first load for this user
+      const defaults = (DEFAULT_STAPLES[currentUser] || []).map(s => ({ ...s, owner: currentUser }));
+      if (defaults.length) {
+        const { data: inserted } = await db.from('grocery_staples').insert(defaults).select();
+        staples = inserted || [];
+      } else {
+        staples = [];
+      }
     }
   }
 
@@ -1344,17 +1361,47 @@
   }
 
   // ========== STAPLES ==========
+  const PERSON_LIST_LABELS = {
+    Allison: { apt: '🏠 Apt', allison: '👤 My list', allison_ruthie: '👥 Allison+Ruthie', allison_avital: '👥 Allison+Avital' },
+    Ruthie:  { apt: '🏠 Apt', ruthie: '👤 My list', allison_ruthie: '👥 Ruthie+Allison', ruthie_avital: '👥 Ruthie+Avital' },
+    Avital:  { apt: '🏠 Apt', avital: '👤 My list', allison_avital: '👥 Avital+Allison', ruthie_avital: '👥 Avital+Ruthie' },
+  };
+
   function renderStaples() {
+    const noUser  = document.getElementById('staples-no-user');
+    const content = document.getElementById('staples-user-content');
     const container = document.getElementById('staples-list');
     const countEl   = document.getElementById('staples-count');
     if (!container) return;
+
+    if (!currentUser) {
+      if (noUser) noUser.style.display = 'block';
+      if (content) content.style.display = 'none';
+      if (countEl) countEl.textContent = '';
+      return;
+    }
+    if (noUser) noUser.style.display = 'none';
+    if (content) content.style.display = 'block';
+
+    // Populate target list dropdown
+    const sel = document.getElementById('staples-target-list');
+    if (sel) {
+      sel.innerHTML = '';
+      const labels = PERSON_LIST_LABELS[currentUser] || {};
+      Object.entries(labels).forEach(([key, label]) => {
+        const o = document.createElement('option');
+        o.value = key; o.textContent = label;
+        sel.appendChild(o);
+      });
+    }
+
     container.innerHTML = '';
     staples.forEach(s => {
       const row = document.createElement('div');
       row.className = 'staple-row';
       const name = document.createElement('span');
       name.className = 'staple-name';
-      name.textContent = `${s.name} · ${s.section}`;
+      name.textContent = s.name;
       const del = document.createElement('button');
       del.className = 'staple-delete';
       del.textContent = '✕';
@@ -1366,12 +1413,13 @@
   }
 
   window.addStaple = async function() {
+    if (!currentUser) { alert('Pick who you are first (top of page)'); return; }
     const input = document.getElementById('staples-input');
     const name  = input.value.trim();
     if (!name) return;
     const lower = name.toLowerCase();
     const section = catalog[lower]?.section || 'Other';
-    const { data } = await db.from('grocery_staples').insert({ name, section }).select().single();
+    const { data } = await db.from('grocery_staples').insert({ name, section, owner: currentUser }).select().single();
     if (data) { staples.push(data); renderStaples(); input.value = ''; }
   };
 
@@ -1381,24 +1429,27 @@
     renderStaples();
   }
 
-  window.addAllStaplesToMyList = async function() {
+  window.addAllStaplesToList = async function() {
     if (!currentUser) { alert('Pick who you are first (top of page)'); return; }
-    const targetList = currentUser.toLowerCase();
-    const existing = (items[targetList] || []).map(i => i.item_name.toLowerCase());
+    const sel = document.getElementById('staples-target-list');
+    const targetList = sel ? sel.value : currentUser.toLowerCase();
+    const canonTarget = canonical(targetList);
+    const existing = (items[canonTarget] || []).map(i => i.item_name.toLowerCase());
     const toAdd = staples.filter(s => !existing.includes(s.name.toLowerCase()));
-    if (!toAdd.length) { setStatus('All staples already on your list!'); return; }
+    if (!toAdd.length) { setStatus('All staples already on that list!'); return; }
     for (const s of toAdd) {
       const { data: newItem } = await db.from('grocery_items').insert({
-        list_type: targetList, item_name: s.name, section: s.section,
+        list_type: canonTarget, item_name: s.name, section: s.section,
         checked: false, added_by: currentUser, quantity: 1
       }).select().single();
       if (newItem) {
-        if (!items[targetList]) items[targetList] = [];
-        items[targetList].push(newItem);
+        if (!items[canonTarget]) items[canonTarget] = [];
+        items[canonTarget].push(newItem);
       }
     }
     renderAll();
-    setStatus(`Added ${toAdd.length} staple(s) to ${currentUser}'s list`);
+    const label = PERSON_LIST_LABELS[currentUser]?.[targetList] || targetList;
+    setStatus(`Added ${toAdd.length} staple(s) to ${label}`);
   };
 
   // ========== NUTRITIONIST ==========
