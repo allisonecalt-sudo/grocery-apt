@@ -984,11 +984,7 @@
     name.className = 'item-name' + (item.checked ? ' checked' : '');
     name.textContent = item.item_name;
 
-    const addedBy = document.createElement('span');
-    addedBy.className = 'item-added-by';
-    addedBy.textContent = item.added_by ? `added by ${item.added_by}` : '';
-
-    info.append(name, addedBy);
+    info.append(name);
 
     const qty = document.createElement('span');
     qty.className = 'item-qty';
@@ -1312,11 +1308,7 @@
       name.className = 'shop-item-name' + (item.checked ? ' checked' : '');
       name.textContent = item.item_name;
 
-      const meta = document.createElement('div');
-      meta.className = 'shop-item-meta';
-      meta.textContent = item.added_by ? `added by ${item.added_by}` : '';
-
-      info.append(name, meta);
+      info.append(name);
 
       if (item.quantity && item.quantity > 1) {
         const qtyTag = document.createElement('span');
