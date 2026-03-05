@@ -283,6 +283,102 @@
       .add-row { flex-direction: column; }
       .add-btn, .section-select { width: 100%; max-width: 100%; }
     }
+
+    /* === SHOPPING MODE === */
+    .shop-btn {
+      background: #f0c040;
+      color: #5a3a00;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .shop-btn:hover { background: #e6b800; }
+
+    .shopping-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #f0f4f0;
+      z-index: 500;
+      overflow-y: auto;
+    }
+    .shopping-overlay.active { display: block; }
+
+    .shop-header {
+      background: #1a4a35;
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .shop-header h2 { font-size: 1.1rem; }
+    .shop-exit {
+      background: rgba(255,255,255,0.2);
+      border: none; color: white;
+      border-radius: 8px; padding: 6px 14px;
+      cursor: pointer; font-size: 0.88rem;
+    }
+    .shop-exit:hover { background: rgba(255,255,255,0.35); }
+
+    .shop-body { padding: 16px; max-width: 600px; margin: 0 auto; }
+
+    .shop-section-block {
+      background: white;
+      border-radius: 14px;
+      margin-bottom: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .shop-section-title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #2d6a4f;
+      background: #e8f5e9;
+      padding: 8px 16px;
+    }
+    .shop-item-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .shop-item-row:last-child { border-bottom: none; }
+    .shop-item-info { flex: 1; }
+    .shop-item-name { font-size: 0.95rem; }
+    .shop-item-name.checked { text-decoration: line-through; color: #bbb; }
+    .shop-item-meta { font-size: 0.7rem; color: #bbb; margin-top: 1px; }
+    .shop-list-tag {
+      font-size: 0.7rem;
+      background: #f0f4f0;
+      color: #6a8a6a;
+      border-radius: 8px;
+      padding: 2px 7px;
+      white-space: nowrap;
+    }
+    .shop-clear {
+      display: block;
+      width: calc(100% - 32px);
+      margin: 0 16px 16px;
+      padding: 10px;
+      background: #fff0f0; color: #c0605a;
+      border: 1px solid #f0c0be;
+      border-radius: 10px;
+      font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; text-align: center;
+    }
+    .shop-empty { text-align: center; color: #aaa; font-style: italic; padding: 40px 20px; }
   </style>
 </head>
 <body>
@@ -290,9 +386,12 @@
 <header>
   <div class="header-row1">
     <h1>🛒 Apt Grocery</h1>
-    <div class="undo-redo">
-      <button id="undoBtn" onclick="undo()" disabled>↩ Undo</button>
-      <button id="redoBtn" onclick="redo()" disabled>↪ Redo</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="shop-btn" onclick="enterShoppingMode()">🛍 Shop</button>
+      <div class="undo-redo">
+        <button id="undoBtn" onclick="undo()" disabled>↩ Undo</button>
+        <button id="redoBtn" onclick="redo()" disabled>↪ Redo</button>
+      </div>
     </div>
   </div>
   <div class="who-row">
@@ -530,6 +629,18 @@
   <div class="status-bar" id="status-bar"></div>
 </div>
 
+<!-- SHOPPING MODE OVERLAY -->
+<div class="shopping-overlay" id="shopping-overlay">
+  <div class="shop-header">
+    <h2 id="shop-title">🛍 Shopping</h2>
+    <button class="shop-exit" onclick="exitShoppingMode()">✕ Exit</button>
+  </div>
+  <div class="shop-body">
+    <div id="shop-list-content"></div>
+    <button class="shop-clear" onclick="shopClearChecked()">✕ Clear all checked items</button>
+  </div>
+</div>
+
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -537,7 +648,7 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwaXl2bmZob3Fubm5vdHJtd2F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NzIwNDEsImV4cCI6MjA4ODA0ODA0MX0.AsGhYitkSnyVMwpJII05UseS_gICaXiCy7d8iHsr6Qw';
   const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const SECTIONS = ['Vegetables','Fruit','Dairy','Meat & Fish','Bread & Wraps','Grains & Pasta','Baking','Nuts & Seeds','Oils & Vinegar','Spices','Snacks & Chocolate','Pantry','Beverages','Frozen','Cleaning','Personal Care','Other'];
+  const SECTIONS = ['Vegetables','Fruit','Dairy','Meat & Fish','Bread & Wraps','Grains & Pasta','Baking','Nuts & Seeds','Oils & Vinegar','Spices','Snacks & Chocolate','Pantry','Beverages','Wine & Beer','Frozen','Cleaning','Personal Care','Other'];
 
   const ALIAS = {
     ruthie_allison: 'allison_ruthie',
@@ -911,6 +1022,135 @@
     bar.textContent = msg;
     setTimeout(() => bar.textContent = '', 3000);
   }
+
+  // ========== SHOPPING MODE ==========
+  const LIST_LABEL = {
+    apt: '🏠 Apt', allison: '👤 Allison', ruthie: '👤 Ruthie', avital: '👤 Avital',
+    allison_ruthie: '👥 Allison+Ruthie', allison_avital: '👥 Allison+Avital',
+    ruthie_avital: '👥 Ruthie+Avital'
+  };
+
+  const PERSON_LISTS = {
+    Allison: ['apt','allison','allison_ruthie','allison_avital'],
+    Ruthie:  ['apt','ruthie','allison_ruthie','ruthie_avital'],
+    Avital:  ['apt','avital','allison_avital','ruthie_avital'],
+  };
+
+  window.enterShoppingMode = function() {
+    if (!currentUser) {
+      alert('Pick who you are first (top of page)');
+      return;
+    }
+    renderShoppingList();
+    document.getElementById('shopping-overlay').classList.add('active');
+    document.getElementById('shop-title').textContent = `🛍 ${currentUser}'s Shopping List`;
+  };
+
+  window.exitShoppingMode = function() {
+    document.getElementById('shopping-overlay').classList.remove('active');
+    renderAll(); // refresh main view
+  };
+
+  function getShoppingItems() {
+    const lists = PERSON_LISTS[currentUser] || [];
+    const all = [];
+    lists.forEach(listKey => {
+      (items[listKey] || []).forEach(item => {
+        all.push({ ...item, _listKey: listKey });
+      });
+    });
+    // Sort by section order, then name
+    return all.sort((a, b) => {
+      const si = SECTIONS.indexOf(a.section);
+      const sj = SECTIONS.indexOf(b.section);
+      if (si !== sj) return si - sj;
+      return a.item_name.localeCompare(b.item_name);
+    });
+  }
+
+  function renderShoppingList() {
+    const container = document.getElementById('shop-list-content');
+    container.innerHTML = '';
+    const allItems = getShoppingItems();
+
+    if (!allItems.length) {
+      container.innerHTML = '<div class="shop-empty">Nothing on any of your lists!</div>';
+      return;
+    }
+
+    let currentSection = null;
+    let currentBlock = null;
+
+    allItems.forEach(item => {
+      if (item.section !== currentSection) {
+        currentSection = item.section;
+        currentBlock = document.createElement('div');
+        currentBlock.className = 'shop-section-block';
+        const title = document.createElement('div');
+        title.className = 'shop-section-title';
+        title.textContent = item.section;
+        currentBlock.appendChild(title);
+        container.appendChild(currentBlock);
+      }
+
+      const row = document.createElement('div');
+      row.className = 'shop-item-row';
+      row.id = `shop-row-${item.id}`;
+
+      const chk = document.createElement('div');
+      chk.className = 'item-check' + (item.checked ? ' checked' : '');
+      chk.onclick = () => shopToggleCheck(item);
+
+      const info = document.createElement('div');
+      info.className = 'shop-item-info';
+
+      const name = document.createElement('div');
+      name.className = 'shop-item-name' + (item.checked ? ' checked' : '');
+      name.textContent = item.item_name;
+
+      const meta = document.createElement('div');
+      meta.className = 'shop-item-meta';
+      meta.textContent = item.added_by ? `added by ${item.added_by}` : '';
+
+      info.append(name, meta);
+
+      const tag = document.createElement('span');
+      tag.className = 'shop-list-tag';
+      tag.textContent = LIST_LABEL[item._listKey] || item._listKey;
+
+      row.append(chk, info, tag);
+      currentBlock.appendChild(row);
+    });
+  }
+
+  async function shopToggleCheck(item) {
+    const newVal = !item.checked;
+    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
+    const stored = (items[item._listKey] || []).find(i => i.id === item.id);
+    if (stored) stored.checked = newVal;
+    item.checked = newVal;
+
+    // Update the row in place
+    const row = document.getElementById(`shop-row-${item.id}`);
+    if (row) {
+      const chk = row.querySelector('.item-check');
+      const name = row.querySelector('.shop-item-name');
+      chk.classList.toggle('checked', newVal);
+      name.classList.toggle('checked', newVal);
+    }
+  }
+
+  window.shopClearChecked = async function() {
+    const lists = PERSON_LISTS[currentUser] || [];
+    for (const listKey of lists) {
+      const checked = (items[listKey] || []).filter(i => i.checked);
+      if (!checked.length) continue;
+      await db.from('grocery_items').delete().in('id', checked.map(i => i.id));
+      items[listKey] = (items[listKey] || []).filter(i => !i.checked);
+    }
+    renderShoppingList();
+    setStatus('Cleared checked items');
+  };
 
   init();
 </script>
