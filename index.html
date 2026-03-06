@@ -2100,18 +2100,97 @@
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      setStatus('Reading receipt...');
+      setStatus('Reading receipt... ⏳');
       try {
-        let parsed = [];
-        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-          parsed = await parsePairzonPDF(file);
+        const pages = await fileToBase64Pages(file);
+        const allMatched = [], allUnmatched = [];
+        for (const { data, mimeType } of pages) {
+          const res = await fetch('https://hpiyvnfhoqnnnotrmwaz.supabase.co/functions/v1/parse-receipt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+            body: JSON.stringify({ imageData: data, mimeType, tripItems: _receiptTripItems })
+          });
+          const result = await res.json();
+          if (result.error) throw new Error(result.error);
+          if (result.matched) allMatched.push(...result.matched);
+          if (result.unmatched) allUnmatched.push(...result.unmatched);
         }
-        if (!parsed.length) { setStatus('Could not read receipt — try manual entry'); openManualReceipt(tripId); return; }
-        showReceiptReview(parsed);
-      } catch(err) { console.error(err); setStatus('Could not read receipt — try manual entry'); openManualReceipt(tripId); }
+        showReceiptReviewAI({ matched: allMatched, unmatched: allUnmatched });
+        setStatus('');
+      } catch(err) {
+        console.error(err);
+        setStatus('Could not read receipt — opening manual entry');
+        openManualReceipt(tripId);
+      }
     };
     input.click();
   };
+
+  async function fileToBase64Pages(file) {
+    const isPDF = file.type === 'application/pdf' || file.name.endsWith('.pdf');
+    if (isPDF) {
+      if (!window.pdfjsLib) throw new Error('PDF.js not loaded');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const ab = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({data: ab}).promise;
+      const pages = [];
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const viewport = page.getViewport({scale: 2});
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width; canvas.height = viewport.height;
+        await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+        pages.push({ data: canvas.toDataURL('image/jpeg', 0.9).split(',')[1], mimeType: 'image/jpeg' });
+      }
+      return pages;
+    } else {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve([{ data: reader.result.split(',')[1], mimeType: file.type }]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+
+  function showReceiptReviewAI({ matched, unmatched }) {
+    let html = '';
+    if (matched.length) {
+      html += `<div class="receipt-section-title">✅ Matched (${matched.length})</div>`;
+      matched.forEach((m, i) => {
+        html += `<div class="receipt-match-row">
+          <span class="receipt-match-name">${m.list_item}</span>
+          <span style="font-size:0.72rem;color:#aaa;flex:1;padding:0 4px;overflow:hidden;white-space:nowrap">${m.receipt_name}</span>
+          <input class="manual-price-input" id="rp-${i}" type="number" value="${m.price||''}" min="0" step="0.01" />
+        </div>`;
+      });
+    }
+    if (unmatched.length) {
+      html += `<div class="receipt-section-title receipt-unmatched">🧾 On receipt, not on your list (${unmatched.length})</div>`;
+      unmatched.forEach(u => {
+        html += `<div class="receipt-match-row">
+          <span class="receipt-match-name">${u.receipt_name}</span>
+          <span class="receipt-match-price">₪${parseFloat(u.price||0).toFixed(2)}</span>
+        </div>`;
+      });
+    }
+    const matchedNames = new Set(matched.map(m => m.list_item));
+    const notOnReceipt = _receiptTripItems.filter(t => !matchedNames.has(t.item_name));
+    if (notOnReceipt.length) {
+      html += `<div class="receipt-section-title" style="color:#e67e22">❓ On list, not found on receipt (${notOnReceipt.length})</div>`;
+      notOnReceipt.forEach((t, i) => {
+        html += `<div class="receipt-match-row">
+          <span class="receipt-match-name">${t.item_name}</span>
+          <input class="manual-price-input" id="rp-extra-${i}" type="number" min="0" step="0.01" placeholder="₪" value="${t.price||''}" />
+        </div>`;
+      });
+    }
+    _receiptMatches = matched;
+    _receiptMatches._unmatchedTrip = notOnReceipt;
+    document.getElementById('receipt-modal-body').innerHTML = html;
+    document.getElementById('receipt-modal-bg').classList.add('active');
+    setStatus('');
+  }
 
   window.openManualReceipt = function(tripId) {
     const stored = _tripData[tripId];
