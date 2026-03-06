@@ -1693,10 +1693,9 @@
     if (!allChecked.length) return;
 
     // Save trip to Supabase
-    await db.from('shopping_trips').insert({
-      shopped_by: currentUser,
-      shopped_at: new Date().toISOString(),
-      items: allChecked
+    await db.from('grocery_trips').insert({
+      trip_date: new Date().toISOString(),
+      items: allChecked.map(i => ({ ...i, shopped_by: currentUser }))
     });
 
     // Now delete
@@ -1717,9 +1716,9 @@
     body.innerHTML = '<div class="trips-empty">Loading...</div>';
 
     const { data: trips, error } = await db
-      .from('shopping_trips')
+      .from('grocery_trips')
       .select('*')
-      .order('shopped_at', { ascending: false })
+      .order('trip_date', { ascending: false })
       .limit(30);
 
     if (error || !trips || !trips.length) {
@@ -1729,10 +1728,11 @@
 
     body.innerHTML = '';
     trips.forEach((trip, idx) => {
-      const date = new Date(trip.shopped_at);
+      const date = new Date(trip.trip_date || trip.created_at);
       const dateStr = date.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
       const timeStr = date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
       const tripItems = Array.isArray(trip.items) ? trip.items : [];
+      const whoShopped = tripItems.length ? (tripItems[0].shopped_by || '') : '';
 
       const card = document.createElement('div');
       card.className = 'trip-card';
@@ -1746,7 +1746,7 @@
       header.innerHTML = `
         <div>
           <div class="trip-date-label">🛒 ${dateStr} · ${timeStr}</div>
-          <div class="trip-meta">${trip.shopped_by || 'Unknown'} · ${tripItems.length} item(s)</div>
+          <div class="trip-meta">${whoShopped || 'Unknown'} · ${tripItems.length} item(s)</div>
         </div>
         <span style="color:#aaa;font-size:1.1rem;">▾</span>
       `;
