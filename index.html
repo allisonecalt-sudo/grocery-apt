@@ -307,6 +307,23 @@
       transition: color 0.2s; flex-shrink: 0;
     }
     .item-edit:hover { color: #52b788; }
+    .paid-by-pills { display: flex; gap: 3px; margin-top: 3px; }
+    .paid-by-pill {
+      font-size: 0.68rem; font-weight: 600; padding: 1px 6px;
+      border-radius: 10px; border: 1px solid #ddd; background: #f5f5f5;
+      color: #999; cursor: pointer; transition: all 0.15s;
+    }
+    .paid-by-pill.active { background: #e8f4fd; border-color: #4a90d9; color: #1a6ab0; }
+    .paid-by-pill.active.mine { background: #fde8f4; border-color: #d94a90; color: #a0186a; }
+    .trip-delete-btn {
+      background: none; border: none; color: #ffaaaa; cursor: pointer;
+      font-size: 0.85rem; padding: 2px 6px; border-radius: 6px;
+      transition: color 0.2s; flex-shrink: 0;
+    }
+    .trip-delete-btn:hover { color: #e74c3c; }
+    .trip-breakdown { margin: 10px 0 4px; padding: 8px 12px; background: #f8f8f8; border-radius: 10px; font-size: 0.82rem; color: #555; }
+    .trip-breakdown-row { display: flex; justify-content: space-between; padding: 2px 0; }
+    .trip-breakdown-row strong { color: #333; }
     .edit-modal-bg {
       display: none;
       position: fixed;
@@ -977,6 +994,16 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwaXl2bmZob3Fubm5vdHJtd2F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NzIwNDEsImV4cCI6MjA4ODA0ODA0MX0.AsGhYitkSnyVMwpJII05UseS_gICaXiCy7d8iHsr6Qw';
   const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  const PAID_BY_OPTIONS = {
+    apt:            ['joint','Allison','Ruthie'],
+    allison_ruthie: ['joint','Allison','Ruthie'],
+    ruthie_allison: ['joint','Allison','Ruthie'],
+    allison_avital: ['joint','Allison','Avital'],
+    avital_allison: ['joint','Allison','Avital'],
+    ruthie_avital:  ['joint','Ruthie','Avital'],
+    avital_ruthie:  ['joint','Ruthie','Avital'],
+  };
+
   const SECTIONS = ['Vegetables','Fruit','Dairy','Meat & Fish','Bread & Wraps','Grains & Pasta','Baking','Nuts & Seeds','Oils & Vinegar','Spices','Snacks & Chocolate','Pantry','Beverages','Wine & Beer','Frozen','Cleaning','Personal Care','Other'];
 
   const ALIAS = {
@@ -1173,6 +1200,21 @@
     name.textContent = item.item_name;
 
     info.append(name);
+
+    // paid_by pills for shared lists
+    const paidByOpts = PAID_BY_OPTIONS[displayKey];
+    if (paidByOpts) {
+      const pills = document.createElement('div');
+      pills.className = 'paid-by-pills';
+      paidByOpts.forEach(opt => {
+        const pill = document.createElement('button');
+        pill.className = 'paid-by-pill' + (opt !== 'joint' ? ' mine' : '') + ((item.paid_by || 'joint') === opt ? ' active' : '');
+        pill.textContent = opt === 'joint' ? 'joint' : opt;
+        pill.onclick = (e) => { e.stopPropagation(); setPaidBy(item, displayKey, opt, pill); };
+        pills.appendChild(pill);
+      });
+      info.append(pills);
+    }
 
     const qty = document.createElement('span');
     qty.className = 'item-qty';
@@ -1746,12 +1788,19 @@
     setStatus(`Added ${toAdd.length} nutritionist item(s) to your shopping list`);
   };
 
+  window.setPaidBy = async function(item, listKey, value, btnEl) {
+    item.paid_by = value;
+    btnEl.closest('.paid-by-pills').querySelectorAll('.paid-by-pill').forEach(b => b.classList.remove('active'));
+    btnEl.classList.add('active');
+    await db.from('grocery_items').update({ paid_by: value }).eq('id', item.id);
+  };
+
   window.shopClearChecked = async function() {
     const lists = PERSON_LISTS[currentUser] || [];
     const allChecked = [];
     for (const listKey of lists) {
       (items[listKey] || []).filter(i => i.checked).forEach(i => {
-        allChecked.push({ item_name: i.item_name, section: i.section, list_type: i.list_type, quantity: i.quantity || 1 });
+        allChecked.push({ item_name: i.item_name, section: i.section, list_type: i.list_type, quantity: i.quantity || 1, paid_by: i.paid_by || 'joint' });
       });
     }
     if (!allChecked.length) return;
@@ -1809,12 +1858,14 @@
       header.className = 'trip-card-header';
       header.onclick = () => document.getElementById(`trip-body-${idx}`).classList.toggle('open');
       header.innerHTML = `
-        <div>
+        <div style="flex:1" onclick="document.getElementById('trip-body-${idx}').classList.toggle('open')">
           <div class="trip-date-label">🛒 ${dateStr} · ${timeStr}</div>
           <div class="trip-meta">${whoShopped || 'Unknown'} · ${tripItems.length} item(s)</div>
         </div>
-        <span style="color:#aaa;font-size:1.1rem;">▾</span>
+        <button class="trip-delete-btn" onclick="deleteTrip('${trip.id}', this.closest('.trip-card'))">🗑</button>
+        <span style="color:#aaa;font-size:1.1rem;cursor:pointer" onclick="document.getElementById('trip-body-${idx}').classList.toggle('open')">▾</span>
       `;
+      header.onclick = null;
 
       const tripBody = document.createElement('div');
       tripBody.className = 'trip-items-body';
@@ -1847,6 +1898,25 @@
           tripBody.appendChild(line);
         });
       });
+
+      // Paid-by breakdown
+      const breakdown = {};
+      tripItems.forEach(i => {
+        const key = i.paid_by || 'joint';
+        if (!breakdown[key]) breakdown[key] = 0;
+        breakdown[key]++;
+      });
+      if (Object.keys(breakdown).length) {
+        const bd = document.createElement('div');
+        bd.className = 'trip-breakdown';
+        Object.entries(breakdown).forEach(([who, count]) => {
+          const row = document.createElement('div');
+          row.className = 'trip-breakdown-row';
+          row.innerHTML = `<span>${who === 'joint' ? '🤝 joint' : '👤 ' + who}</span><strong>${count} item${count>1?'s':''}</strong>`;
+          bd.appendChild(row);
+        });
+        tripBody.appendChild(bd);
+      }
 
       // Footer: list picker + add button
       const footer = document.createElement('div');
@@ -1900,6 +1970,12 @@
     }
     renderAll();
     setStatus(`Added ${added} item(s) to ${LIST_LABEL[targetList] || targetList}`);
+  };
+
+  window.deleteTrip = async function(tripId, cardEl) {
+    if (!confirm('Delete this trip?')) return;
+    await db.from('grocery_trips').delete().eq('id', tripId);
+    cardEl.remove();
   };
 
   window.closeTrips = function() {
