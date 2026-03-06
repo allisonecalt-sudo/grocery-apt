@@ -441,12 +441,19 @@
       display: block;
       width: calc(100% - 32px);
       margin: 0 16px 16px;
-      padding: 10px;
-      background: #fff0f0; color: #c0605a;
-      border: 1px solid #f0c0be;
+      padding: 12px;
+      background: #52b788; color: white;
+      border: none;
       border-radius: 10px;
-      font-size: 0.85rem; font-weight: 600;
+      font-size: 0.9rem; font-weight: 700;
       cursor: pointer; text-align: center;
+      box-shadow: 0 2px 8px rgba(82,183,136,0.3);
+    }
+    .shop-clear:hover { background: #40916c; }
+    .shop-items-left {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      font-weight: 400;
     }
     .shop-empty { text-align: center; color: #aaa; font-style: italic; padding: 40px 20px; }
 
@@ -927,7 +934,10 @@
 <!-- SHOPPING MODE OVERLAY -->
 <div class="shopping-overlay" id="shopping-overlay">
   <div class="shop-header">
-    <h2 id="shop-title">🛍 Shopping</h2>
+    <div>
+      <h2 id="shop-title">🛍 Shopping</h2>
+      <div class="shop-items-left" id="shop-items-left"></div>
+    </div>
     <div style="display:flex;gap:8px">
       <button class="shop-history-btn" onclick="openTrips()">📋 Past trips</button>
       <button class="shop-exit" onclick="exitShoppingMode()">✕ Exit</button>
@@ -935,7 +945,7 @@
   </div>
   <div class="shop-body">
     <div id="shop-list-content"></div>
-    <button class="shop-clear" onclick="shopClearChecked()">✕ Clear all checked items</button>
+    <button class="shop-clear" onclick="shopClearChecked()">✓ Done — Save trip &amp; clear checked</button>
   </div>
 </div>
 
@@ -1089,6 +1099,11 @@
     buildGroupedList(ul, list, key);
     empty.style.display = list.length ? 'none' : 'block';
     count.textContent = list.length;
+    // Auto-collapse section-card when empty
+    const body = document.getElementById(`${key}-body`);
+    const chev = document.getElementById(`${key}-chev`);
+    if (body && list.length === 0) { body.classList.add('collapsed'); if (chev) chev.classList.remove('open'); }
+    if (body && list.length > 0)  { body.classList.remove('collapsed'); if (chev) chev.classList.add('open'); }
   }
 
   function renderMirror(mirrorKey, canonKey) {
@@ -1101,6 +1116,10 @@
     buildGroupedList(ul, list, mirrorKey);
     empty.style.display = list.length ? 'none' : 'block';
     count.textContent = list.length;
+    const body = document.getElementById(`${mirrorKey}-body`);
+    const chev = document.getElementById(`${mirrorKey}-chev`);
+    if (body && list.length === 0) { body.classList.add('collapsed'); if (chev) chev.classList.remove('open'); }
+    if (body && list.length > 0)  { body.classList.remove('collapsed'); if (chev) chev.classList.add('open'); }
   }
 
   function buildGroupedList(ul, sortedList, displayKey) {
@@ -1459,8 +1478,9 @@
         all.push({ ...item, _listKey: listKey });
       });
     });
-    // Sort by section order, then name
+    // Sort: unchecked first, then by section order, then name. Checked items sink to bottom.
     return all.sort((a, b) => {
+      if (a.checked !== b.checked) return a.checked ? 1 : -1;
       const si = SECTIONS.indexOf(a.section);
       const sj = SECTIONS.indexOf(b.section);
       if (si !== sj) return si - sj;
@@ -1468,10 +1488,20 @@
     });
   }
 
+  function updateShopCounter() {
+    const lists = PERSON_LISTS[currentUser] || [];
+    let total = 0, done = 0;
+    lists.forEach(k => { (items[k] || []).forEach(i => { total++; if (i.checked) done++; }); });
+    const left = total - done;
+    const el = document.getElementById('shop-items-left');
+    if (el) el.textContent = left === 0 && total > 0 ? 'All done! ✓' : `${left} of ${total} left`;
+  }
+
   function renderShoppingList() {
     const container = document.getElementById('shop-list-content');
     container.innerHTML = '';
     const allItems = getShoppingItems();
+    updateShopCounter();
 
     if (!allItems.length) {
       container.innerHTML = '<div class="shop-empty">Nothing on any of your lists!</div>';
@@ -1532,15 +1562,8 @@
     const stored = (items[item._listKey] || []).find(i => i.id === item.id);
     if (stored) stored.checked = newVal;
     item.checked = newVal;
-
-    // Update the row in place
-    const row = document.getElementById(`shop-row-${item.id}`);
-    if (row) {
-      const chk = row.querySelector('.item-check');
-      const name = row.querySelector('.shop-item-name');
-      chk.classList.toggle('checked', newVal);
-      name.classList.toggle('checked', newVal);
-    }
+    // Re-render so checked items sink to bottom
+    renderShoppingList();
   }
 
   // ========== STAPLES ==========
