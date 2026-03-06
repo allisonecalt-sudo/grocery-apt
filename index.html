@@ -1336,6 +1336,7 @@
     document.getElementById('edit-name').value = item.item_name;
     document.getElementById('edit-section').value = item.section;
     document.getElementById('edit-list').value = item.list_type;
+    document.getElementById('edit-qty').value = item.quantity || 1;
     document.getElementById('edit-modal-bg').classList.add('active');
     document.getElementById('edit-name').focus();
   };
@@ -1351,6 +1352,7 @@
     const newName    = document.getElementById('edit-name').value.trim();
     const newSection = document.getElementById('edit-section').value;
     const newList    = document.getElementById('edit-list').value;
+    const newQty     = parseInt(document.getElementById('edit-qty').value) || 1;
     if (!newName || !newSection || !newList) { setStatus('Please fill all fields'); return; }
 
     const oldCanon = canonical(_editDisplayKey);
@@ -1359,11 +1361,12 @@
     await db.from('grocery_items').update({
       item_name: newName,
       section: newSection,
-      list_type: newCanon
+      list_type: newCanon,
+      quantity: newQty
     }).eq('id', _editItem.id);
 
     items[oldCanon] = (items[oldCanon] || []).filter(i => i.id !== _editItem.id);
-    const updatedItem = { ..._editItem, item_name: newName, section: newSection, list_type: newCanon };
+    const updatedItem = { ..._editItem, item_name: newName, section: newSection, list_type: newCanon, quantity: newQty };
     if (!items[newCanon]) items[newCanon] = [];
     items[newCanon].push(updatedItem);
 
@@ -1532,10 +1535,39 @@
       return;
     }
 
+    const unchecked = allItems.filter(i => !i.checked);
+    const checked   = allItems.filter(i => i.checked);
+
+    function makeShopRow(item) {
+      const row = document.createElement('div');
+      row.className = 'shop-item-row';
+      row.id = `shop-row-${item.id}`;
+      const chk = document.createElement('div');
+      chk.className = 'item-check' + (item.checked ? ' checked' : '');
+      chk.onclick = () => shopToggleCheck(item);
+      const info = document.createElement('div');
+      info.className = 'shop-item-info';
+      const name = document.createElement('div');
+      name.className = 'shop-item-name' + (item.checked ? ' checked' : '');
+      name.textContent = item.item_name;
+      info.append(name);
+      if (item.quantity && item.quantity > 1) {
+        const qtyTag = document.createElement('span');
+        qtyTag.className = 'item-qty';
+        qtyTag.textContent = `x${item.quantity}`;
+        row.appendChild(qtyTag);
+      }
+      const tag = document.createElement('span');
+      tag.className = 'shop-list-tag';
+      tag.textContent = LIST_LABEL[item._listKey] || item._listKey;
+      row.append(chk, info, tag);
+      return row;
+    }
+
+    // Render unchecked grouped by section
     let currentSection = null;
     let currentBlock = null;
-
-    allItems.forEach(item => {
+    unchecked.forEach(item => {
       if (item.section !== currentSection) {
         currentSection = item.section;
         currentBlock = document.createElement('div');
@@ -1546,38 +1578,23 @@
         currentBlock.appendChild(title);
         container.appendChild(currentBlock);
       }
-
-      const row = document.createElement('div');
-      row.className = 'shop-item-row';
-      row.id = `shop-row-${item.id}`;
-
-      const chk = document.createElement('div');
-      chk.className = 'item-check' + (item.checked ? ' checked' : '');
-      chk.onclick = () => shopToggleCheck(item);
-
-      const info = document.createElement('div');
-      info.className = 'shop-item-info';
-
-      const name = document.createElement('div');
-      name.className = 'shop-item-name' + (item.checked ? ' checked' : '');
-      name.textContent = item.item_name;
-
-      info.append(name);
-
-      if (item.quantity && item.quantity > 1) {
-        const qtyTag = document.createElement('span');
-        qtyTag.className = 'item-qty';
-        qtyTag.textContent = `x${item.quantity}`;
-        row.appendChild(qtyTag);
-      }
-
-      const tag = document.createElement('span');
-      tag.className = 'shop-list-tag';
-      tag.textContent = LIST_LABEL[item._listKey] || item._listKey;
-
-      row.append(chk, info, tag);
-      currentBlock.appendChild(row);
+      currentBlock.appendChild(makeShopRow(item));
     });
+
+    // Render checked items in a single "Done" block
+    if (checked.length) {
+      const doneBlock = document.createElement('div');
+      doneBlock.className = 'shop-section-block';
+      doneBlock.style.opacity = '0.6';
+      const doneTitle = document.createElement('div');
+      doneTitle.className = 'shop-section-title';
+      doneTitle.style.background = '#d0e8d0';
+      doneTitle.style.color = '#5a8a5a';
+      doneTitle.textContent = '✓ Done';
+      doneBlock.appendChild(doneTitle);
+      checked.forEach(item => doneBlock.appendChild(makeShopRow(item)));
+      container.appendChild(doneBlock);
+    }
   }
 
   async function shopToggleCheck(item) {
@@ -1928,6 +1945,11 @@
         <option value="ruthie_avital">👥 Ruthie + Avital</option>
         <option value="allison_nutritionist">🥗 Allison Nutritionist</option>
       </select>
+    </div>
+    <div class="edit-field">
+      <label>Quantity</label>
+      <input id="edit-qty" type="number" min="1" max="99" value="1"
+        onkeydown="if(event.key==='Enter')saveEdit();if(event.key==='Escape')closeEditModal()" />
     </div>
     <div class="edit-modal-btns">
       <button class="edit-save-btn" onclick="saveEdit()">Save</button>
