@@ -916,6 +916,17 @@
     </div>
   </div>
 
+  <div class="catalog-toggle">
+    <button onclick="toggleCatalog()">⚙ Edit item catalog</button>
+  </div>
+  <div class="catalog-editor" id="catalog-editor">
+    <h3>Item Catalog — change any section</h3>
+    <table class="catalog-table">
+      <thead><tr><th>Item</th><th>Section</th></tr></thead>
+      <tbody id="catalog-tbody"></tbody>
+    </table>
+  </div>
+
   <!-- WEEKLY STAPLES -->
   <div class="staples-card">
     <div class="staples-header" onclick="toggleSection('staples-body','staples-chev')">
@@ -936,17 +947,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="catalog-toggle">
-    <button onclick="toggleCatalog()">⚙ Edit item catalog</button>
-  </div>
-  <div class="catalog-editor" id="catalog-editor">
-    <h3>Item Catalog — change any section</h3>
-    <table class="catalog-table">
-      <thead><tr><th>Item</th><th>Section</th></tr></thead>
-      <tbody id="catalog-tbody"></tbody>
-    </table>
   </div>
 
   <div class="status-bar" id="status-bar"></div>
