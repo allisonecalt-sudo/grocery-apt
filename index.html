@@ -299,6 +299,56 @@
 
     .status-bar { text-align: center; font-size: 0.78rem; color: #aaa; padding: 8px; }
 
+    /* === EDIT BUTTON + MODAL === */
+    .item-edit {
+      background: none; border: none; color: #ccc;
+      cursor: pointer; font-size: 0.9rem;
+      padding: 2px 4px; border-radius: 4px;
+      transition: color 0.2s; flex-shrink: 0;
+    }
+    .item-edit:hover { color: #52b788; }
+    .edit-modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 700;
+      align-items: center;
+      justify-content: center;
+    }
+    .edit-modal-bg.active { display: flex; }
+    .edit-modal {
+      background: white;
+      border-radius: 18px;
+      padding: 22px 20px 18px;
+      width: min(90vw, 360px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    .edit-modal h3 { font-size: 1rem; margin-bottom: 16px; color: #2d6a4f; }
+    .edit-field { margin-bottom: 12px; }
+    .edit-field label { display: block; font-size: 0.78rem; color: #888; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .edit-field input, .edit-field select {
+      width: 100%; padding: 9px 12px;
+      border: 2px solid #e0e8e0; border-radius: 10px;
+      font-size: 0.92rem; outline: none; background: white;
+    }
+    .edit-field input:focus, .edit-field select:focus { border-color: #52b788; }
+    .edit-modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+    .edit-save-btn {
+      flex: 1; padding: 10px;
+      background: #52b788; color: white;
+      border: none; border-radius: 10px;
+      font-size: 0.92rem; font-weight: 700; cursor: pointer;
+    }
+    .edit-save-btn:hover { background: #40916c; }
+    .edit-cancel-btn {
+      padding: 10px 16px;
+      background: #f0f0f0; color: #666;
+      border: none; border-radius: 10px;
+      font-size: 0.92rem; cursor: pointer;
+    }
+    .edit-cancel-btn:hover { background: #e0e0e0; }
+
     @media (max-width: 420px) {
       .add-row { flex-direction: column; }
       .add-btn, .section-select { width: 100%; max-width: 100%; }
@@ -638,8 +688,8 @@
     </div>
   </div>
 
-  <!-- TABS -->
-  <div class="tabs">
+  <!-- TABS (hidden — controlled by "I am" selector at top) -->
+  <div class="tabs" style="display:none">
     <button class="tab-btn active-allison" id="tab-allison" onclick="switchTab('allison')">Allison</button>
     <button class="tab-btn" id="tab-ruthie"  onclick="switchTab('ruthie')">Ruthie</button>
     <button class="tab-btn" id="tab-avital"  onclick="switchTab('avital')">Avital</button>
@@ -932,6 +982,7 @@
     localStorage.setItem('grocery_who', name);
     document.querySelectorAll('.who-btn').forEach(b => b.classList.remove('selected'));
     document.getElementById(`who-${name}`).classList.add('selected');
+    switchTab(name.toLowerCase());
     await loadStaples();
     renderStaples();
   };
@@ -940,6 +991,7 @@
     if (currentUser) {
       const btn = document.getElementById(`who-${currentUser}`);
       if (btn) btn.classList.add('selected');
+      switchTab(currentUser.toLowerCase());
     }
   }
 
@@ -994,6 +1046,15 @@
         sel.appendChild(o);
       });
     });
+    const editSec = document.getElementById('edit-section');
+    if (editSec) {
+      editSec.innerHTML = '<option value="">Choose section...</option>';
+      SECTIONS.forEach(s => {
+        const o = document.createElement('option');
+        o.value = o.textContent = s;
+        editSec.appendChild(o);
+      });
+    }
   }
 
   // ========== SORT ==========
@@ -1083,7 +1144,13 @@
     del.textContent = '✕';
     del.onclick = () => deleteItem(item, displayKey);
 
-    li.append(chk, info, qty, del);
+    const edit = document.createElement('button');
+    edit.className = 'item-edit';
+    edit.textContent = '✏';
+    edit.title = 'Edit item';
+    edit.onclick = (e) => { e.stopPropagation(); openEditModal(item, displayKey); };
+
+    li.append(chk, info, qty, edit, del);
     return li;
   }
 
@@ -1214,6 +1281,52 @@
     checked.forEach(item => pushHistory({ type: 'delete', item, canonKey }));
     renderAll();
     setStatus(`Cleared ${checked.length} item(s)`);
+  };
+
+  // ========== EDIT ==========
+  let _editItem = null;
+  let _editDisplayKey = null;
+
+  window.openEditModal = function(item, displayKey) {
+    _editItem = item;
+    _editDisplayKey = displayKey;
+    document.getElementById('edit-name').value = item.item_name;
+    document.getElementById('edit-section').value = item.section;
+    document.getElementById('edit-list').value = item.list_type;
+    document.getElementById('edit-modal-bg').classList.add('active');
+    document.getElementById('edit-name').focus();
+  };
+
+  window.closeEditModal = function() {
+    document.getElementById('edit-modal-bg').classList.remove('active');
+    _editItem = null;
+    _editDisplayKey = null;
+  };
+
+  window.saveEdit = async function() {
+    if (!_editItem) return;
+    const newName    = document.getElementById('edit-name').value.trim();
+    const newSection = document.getElementById('edit-section').value;
+    const newList    = document.getElementById('edit-list').value;
+    if (!newName || !newSection || !newList) { setStatus('Please fill all fields'); return; }
+
+    const oldCanon = canonical(_editDisplayKey);
+    const newCanon = canonical(newList);
+
+    await db.from('grocery_items').update({
+      item_name: newName,
+      section: newSection,
+      list_type: newCanon
+    }).eq('id', _editItem.id);
+
+    items[oldCanon] = (items[oldCanon] || []).filter(i => i.id !== _editItem.id);
+    const updatedItem = { ..._editItem, item_name: newName, section: newSection, list_type: newCanon };
+    if (!items[newCanon]) items[newCanon] = [];
+    items[newCanon].push(updatedItem);
+
+    setStatus(`Updated "${newName}"`);
+    closeEditModal();
+    renderAll();
   };
 
   // ========== CATALOG ==========
@@ -1583,5 +1696,38 @@
 
   init();
 </script>
+
+<!-- EDIT ITEM MODAL -->
+<div class="edit-modal-bg" id="edit-modal-bg" onclick="if(event.target===this)closeEditModal()">
+  <div class="edit-modal">
+    <h3>✏ Edit Item</h3>
+    <div class="edit-field">
+      <label>Item Name</label>
+      <input id="edit-name" type="text" spellcheck="true"
+        onkeydown="if(event.key==='Enter')saveEdit();if(event.key==='Escape')closeEditModal()" />
+    </div>
+    <div class="edit-field">
+      <label>Section</label>
+      <select id="edit-section"></select>
+    </div>
+    <div class="edit-field">
+      <label>List</label>
+      <select id="edit-list">
+        <option value="apt">🏠 Apartment</option>
+        <option value="allison">👤 Allison</option>
+        <option value="ruthie">👤 Ruthie</option>
+        <option value="avital">👤 Avital</option>
+        <option value="allison_ruthie">👥 Allison + Ruthie</option>
+        <option value="allison_avital">👥 Allison + Avital</option>
+        <option value="ruthie_avital">👥 Ruthie + Avital</option>
+        <option value="allison_nutritionist">🥗 Allison Nutritionist</option>
+      </select>
+    </div>
+    <div class="edit-modal-btns">
+      <button class="edit-save-btn" onclick="saveEdit()">Save</button>
+      <button class="edit-cancel-btn" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
