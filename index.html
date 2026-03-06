@@ -729,8 +729,8 @@
       <button class="shop-btn" onclick="enterShoppingMode()">🛍 Shop</button>
       <button class="shop-history-btn" onclick="openTrips()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:0.82rem;">📋 Trips</button>
       <div class="undo-redo">
-        <button id="undoBtn" onclick="undo()" disabled>↩ Undo</button>
-        <button id="redoBtn" onclick="redo()" disabled>↪ Redo</button>
+        <button class="undo-btn" onclick="undo()" disabled>↩ Undo</button>
+        <button class="redo-btn" onclick="redo()" disabled>↪ Redo</button>
       </div>
     </div>
   </div>
@@ -1033,6 +1033,10 @@
     </div>
     <div style="display:flex;gap:8px">
       <button class="shop-history-btn" onclick="openTrips()">📋 Past trips</button>
+      <div class="undo-redo" style="background:rgba(255,255,255,0.15);border-radius:8px;">
+        <button class="undo-btn" onclick="undo()" disabled style="color:white">↩</button>
+        <button class="redo-btn" onclick="redo()" disabled style="color:white">↪</button>
+      </div>
       <button class="shop-exit" onclick="exitShoppingMode()">✕ Exit</button>
     </div>
   </div>
@@ -1991,20 +1995,23 @@
         });
       });
 
-      // Paid-by breakdown
+      // Breakdown by list
       const breakdown = {};
       tripItems.forEach(i => {
-        const key = i.paid_by || 'joint';
-        if (!breakdown[key]) breakdown[key] = 0;
-        breakdown[key]++;
+        const key = canonical(i.list_type || 'apt');
+        if (!breakdown[key]) breakdown[key] = { count: 0, total: 0 };
+        breakdown[key].count++;
+        if (i.price) breakdown[key].total += parseFloat(i.price);
       });
-      if (Object.keys(breakdown).length) {
+      if (Object.keys(breakdown).length > 1 || tripItems.some(i => i.price)) {
         const bd = document.createElement('div');
         bd.className = 'trip-breakdown';
-        Object.entries(breakdown).forEach(([who, count]) => {
+        Object.entries(breakdown).forEach(([listKey, { count, total }]) => {
           const row = document.createElement('div');
           row.className = 'trip-breakdown-row';
-          row.innerHTML = `<span>${who === 'joint' ? '🤝 joint' : '👤 ' + who}</span><strong>${count} item${count>1?'s':''}</strong>`;
+          const label = LIST_LABEL[listKey] || listKey;
+          const priceStr = total > 0 ? ` · ₪${total.toFixed(2)}` : '';
+          row.innerHTML = `<span>${label}</span><strong>${count} item${count>1?'s':''}${priceStr}</strong>`;
           bd.appendChild(row);
         });
         tripBody.appendChild(bd);
@@ -2113,12 +2120,12 @@
     _receiptTripItems = stored.items;
     const body = document.getElementById('receipt-modal-body');
     body.innerHTML = `<div class="receipt-section-title">Enter prices manually</div>` +
-      tripItems.map((item, i) => `
+      _receiptTripItems.map((item, i) => `
         <div class="receipt-match-row">
           <span class="receipt-match-name">${item.item_name}</span>
-          <input class="manual-price-input" id="manual-price-${i}" type="number" min="0" step="0.01" placeholder="₪" />
+          <input class="manual-price-input" id="manual-price-${i}" type="number" min="0" step="0.01" placeholder="₪" value="${item.price || ''}" />
         </div>`).join('');
-    _receiptMatches = tripItems.map((item, i) => ({ tripItem: item, price: null, manual: true, idx: i }));
+    _receiptMatches = _receiptTripItems.map((item, i) => ({ tripItem: item, tripIdx: i, manual: true }));
     document.getElementById('receipt-modal-bg').classList.add('active');
   };
 
@@ -2221,25 +2228,36 @@
 
   window.saveReceiptPrices = async function() {
     const updatedItems = [..._receiptTripItems].map(i => ({ ...i }));
-    _receiptMatches.forEach((m, i) => {
-      const input = document.getElementById(`rp-${i}`);
-      const price = input ? parseFloat(input.value) || null : null;
-      const ti = updatedItems.find(u => u.item_name === m.tripItem.item_name);
-      if (ti) ti.price = price;
-    });
-    // Extra unmatched trip items
-    if (_receiptMatches._unmatchedTrip) {
-      _receiptMatches._unmatchedTrip.forEach((ti, i) => {
-        const input = document.getElementById(`rp-extra-${i}`);
-        const price = input ? parseFloat(input.value) || null : null;
-        const u = updatedItems.find(u => u.item_name === ti.item_name);
-        if (u && price) u.price = price;
+
+    // Manual mode: manual-price-0, manual-price-1, ...
+    const manualInputs = document.querySelectorAll('[id^="manual-price-"]');
+    if (manualInputs.length) {
+      manualInputs.forEach((input, i) => {
+        const price = parseFloat(input.value) || null;
+        if (updatedItems[i]) updatedItems[i].price = price;
       });
+    } else {
+      // Receipt match mode: rp-0, rp-1, ...
+      _receiptMatches.forEach((m, i) => {
+        const input = document.getElementById(`rp-${i}`);
+        const price = input ? parseFloat(input.value) || null : null;
+        const ti = updatedItems.find(u => u.item_name === m.tripItem.item_name);
+        if (ti) ti.price = price;
+      });
+      if (_receiptMatches._unmatchedTrip) {
+        _receiptMatches._unmatchedTrip.forEach((ti, i) => {
+          const input = document.getElementById(`rp-extra-${i}`);
+          const price = input ? parseFloat(input.value) || null : null;
+          const u = updatedItems.find(u => u.item_name === ti.item_name);
+          if (u && price) u.price = price;
+        });
+      }
     }
+
     await db.from('grocery_trips').update({ items: updatedItems }).eq('id', _receiptTripId);
     closeReceiptModal();
     setStatus('Prices saved!');
-    openTrips(); // refresh
+    openTrips();
   };
 
   window.closeReceiptModal = function() {
@@ -2257,7 +2275,11 @@
 <div class="trips-overlay" id="trips-overlay">
   <div class="trips-header">
     <h2>📋 Past Shopping Trips</h2>
-    <button onclick="closeTrips()" style="background:none;border:none;color:white;font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="undo-btn" onclick="undo()" disabled style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:0.85rem;">↩ Undo</button>
+      <button class="redo-btn" onclick="redo()" disabled style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:0.85rem;">↪ Redo</button>
+      <button onclick="closeTrips()" style="background:none;border:none;color:white;font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+    </div>
   </div>
   <div class="trips-body" id="trips-body">
     <div class="trips-empty">Loading...</div>
