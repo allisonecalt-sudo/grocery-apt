@@ -1684,6 +1684,22 @@
 
   window.shopClearChecked = async function() {
     const lists = PERSON_LISTS[currentUser] || [];
+    const allChecked = [];
+    for (const listKey of lists) {
+      (items[listKey] || []).filter(i => i.checked).forEach(i => {
+        allChecked.push({ item_name: i.item_name, section: i.section, list_type: i.list_type, quantity: i.quantity || 1 });
+      });
+    }
+    if (!allChecked.length) return;
+
+    // Save trip to Supabase
+    await db.from('shopping_trips').insert({
+      shopped_by: currentUser,
+      shopped_at: new Date().toISOString(),
+      items: allChecked
+    });
+
+    // Now delete
     for (const listKey of lists) {
       const checked = (items[listKey] || []).filter(i => i.checked);
       if (!checked.length) continue;
@@ -1691,11 +1707,97 @@
       items[listKey] = (items[listKey] || []).filter(i => !i.checked);
     }
     renderShoppingList();
-    setStatus('Cleared checked items');
+    setStatus(`Trip saved! Cleared ${allChecked.length} item(s)`);
+  };
+
+  // ========== TRIP HISTORY ==========
+  window.openTrips = async function() {
+    document.getElementById('trips-overlay').classList.add('active');
+    const body = document.getElementById('trips-body');
+    body.innerHTML = '<div class="trips-empty">Loading...</div>';
+
+    const { data: trips, error } = await db
+      .from('shopping_trips')
+      .select('*')
+      .order('shopped_at', { ascending: false })
+      .limit(30);
+
+    if (error || !trips || !trips.length) {
+      body.innerHTML = '<div class="trips-empty">No trips logged yet. Clear checked items after shopping to save a trip.</div>';
+      return;
+    }
+
+    body.innerHTML = '';
+    trips.forEach((trip, idx) => {
+      const date = new Date(trip.shopped_at);
+      const dateStr = date.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      const timeStr = date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+      const tripItems = Array.isArray(trip.items) ? trip.items : [];
+
+      const card = document.createElement('div');
+      card.className = 'trip-card';
+
+      const header = document.createElement('div');
+      header.className = 'trip-card-header';
+      header.onclick = () => {
+        const tripBody = document.getElementById(`trip-body-${idx}`);
+        tripBody.classList.toggle('open');
+      };
+      header.innerHTML = `
+        <div>
+          <div class="trip-date-label">🛒 ${dateStr} · ${timeStr}</div>
+          <div class="trip-meta">${trip.shopped_by || 'Unknown'} · ${tripItems.length} item(s)</div>
+        </div>
+        <span style="color:#aaa;font-size:1.1rem;">▾</span>
+      `;
+
+      const tripBody = document.createElement('div');
+      tripBody.className = 'trip-items-body';
+      tripBody.id = `trip-body-${idx}`;
+
+      // Group by section
+      const bySection = {};
+      tripItems.forEach(i => {
+        const sec = i.section || 'Other';
+        if (!bySection[sec]) bySection[sec] = [];
+        bySection[sec].push(i);
+      });
+      SECTIONS.forEach(sec => {
+        if (!bySection[sec]) return;
+        const label = document.createElement('div');
+        label.className = 'trip-section-label';
+        label.textContent = sec;
+        tripBody.appendChild(label);
+        bySection[sec].forEach(i => {
+          const line = document.createElement('div');
+          line.className = 'trip-item-line';
+          line.textContent = i.quantity > 1 ? `${i.item_name} ×${i.quantity}` : i.item_name;
+          tripBody.appendChild(line);
+        });
+      });
+
+      card.append(header, tripBody);
+      body.appendChild(card);
+    });
+  };
+
+  window.closeTrips = function() {
+    document.getElementById('trips-overlay').classList.remove('active');
   };
 
   init();
 </script>
+
+<!-- TRIPS OVERLAY -->
+<div class="trips-overlay" id="trips-overlay">
+  <div class="trips-header">
+    <h2>📋 Past Shopping Trips</h2>
+    <button onclick="closeTrips()" style="background:none;border:none;color:white;font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
+  </div>
+  <div class="trips-body" id="trips-body">
+    <div class="trips-empty">Loading...</div>
+  </div>
+</div>
 
 <!-- EDIT ITEM MODAL -->
 <div class="edit-modal-bg" id="edit-modal-bg" onclick="if(event.target===this)closeEditModal()">
