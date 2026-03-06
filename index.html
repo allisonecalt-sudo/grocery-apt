@@ -655,6 +655,7 @@
     <h1>🛒 Apt Grocery</h1>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="shop-btn" onclick="enterShoppingMode()">🛍 Shop</button>
+      <button class="shop-history-btn" onclick="openTrips()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:0.82rem;">📋 Trips</button>
       <div class="undo-redo">
         <button id="undoBtn" onclick="undo()" disabled>↩ Undo</button>
         <button id="redoBtn" onclick="redo()" disabled>↪ Redo</button>
@@ -690,28 +691,6 @@
           <select class="section-select" id="apt-sec"><option value="">Section...</option></select>
         <button class="add-btn" onclick="addItem('apt')">+ Add</button>
       </div></div>
-    </div>
-  </div>
-
-  <!-- WEEKLY STAPLES -->
-  <div class="staples-card">
-    <div class="staples-header" onclick="toggleSection('staples-body','staples-chev')">
-      <div class="title">⭐ <span>Weekly Staples</span> <span class="staples-count" id="staples-count">0</span></div>
-      <span class="chevron" id="staples-chev">▼</span>
-    </div>
-    <div class="staples-body collapsed" id="staples-body">
-      <div id="staples-no-user" style="color:#aaa;font-style:italic;font-size:0.88rem;padding:6px 0 10px;display:none">Select who you are (top of page) to see your staples</div>
-      <div id="staples-user-content" style="display:none">
-        <div class="staples-add-row" style="margin-bottom:12px">
-          <button class="staples-add-all" style="margin-bottom:0;flex:1" onclick="addAllStaplesToList()">+ Add all staples to:</button>
-          <select class="section-select" id="staples-target-list" style="max-width:140px"></select>
-        </div>
-        <div id="staples-list"></div>
-        <div class="staples-add-row">
-          <input class="staples-input" id="staples-input" placeholder="Add a staple..." spellcheck="true" onkeydown="if(event.key==='Enter')addStaple()" />
-          <button class="staples-btn" onclick="addStaple()">+ Add</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -933,6 +912,28 @@
           <select class="section-select" id="avital_ruthie-sec"><option value="">Section...</option></select>
           <button class="add-btn" onclick="addItem('avital_ruthie')">+ Add</button>
         </div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEKLY STAPLES -->
+  <div class="staples-card">
+    <div class="staples-header" onclick="toggleSection('staples-body','staples-chev')">
+      <div class="title">⭐ <span>Weekly Staples</span> <span class="staples-count" id="staples-count">0</span></div>
+      <span class="chevron" id="staples-chev">▼</span>
+    </div>
+    <div class="staples-body collapsed" id="staples-body">
+      <div id="staples-no-user" style="color:#aaa;font-style:italic;font-size:0.88rem;padding:6px 0 10px;display:none">Select who you are (top of page) to see your staples</div>
+      <div id="staples-user-content" style="display:none">
+        <div class="staples-add-row" style="margin-bottom:12px">
+          <button class="staples-add-all" style="margin-bottom:0;flex:1" onclick="addAllStaplesToList()">+ Add all staples to:</button>
+          <select class="section-select" id="staples-target-list" style="max-width:140px"></select>
+        </div>
+        <div id="staples-list"></div>
+        <div class="staples-add-row">
+          <input class="staples-input" id="staples-input" placeholder="Add a staple..." spellcheck="true" onkeydown="if(event.key==='Enter')addStaple()" />
+          <button class="staples-btn" onclick="addStaple()">+ Add</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1737,8 +1738,9 @@
 
     // Save trip to Supabase
     await db.from('grocery_trips').insert({
-      trip_date: new Date().toISOString(),
-      items: allChecked.map(i => ({ ...i, shopped_by: currentUser }))
+      trip_date: new Date().toISOString().split('T')[0],
+      shopper: currentUser || 'Unknown',
+      items: allChecked
     });
 
     // Now delete
@@ -1777,7 +1779,7 @@
       const dateStr = date.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
       const timeStr = date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
       const tripItems = Array.isArray(trip.items) ? trip.items : [];
-      const whoShopped = tripItems.length ? (tripItems[0].shopped_by || '') : '';
+      const whoShopped = trip.shopper || '';
       _tripData[idx] = tripItems;
 
       const card = document.createElement('div');
