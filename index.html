@@ -400,6 +400,70 @@
     }
     .shop-empty { text-align: center; color: #aaa; font-style: italic; padding: 40px 20px; }
 
+    .shop-history-btn {
+      background: rgba(255,255,255,0.2);
+      border: none; color: white;
+      border-radius: 8px; padding: 6px 12px;
+      cursor: pointer; font-size: 0.85rem;
+    }
+    .shop-history-btn:hover { background: rgba(255,255,255,0.35); }
+
+    /* === PAST TRIPS OVERLAY === */
+    .trips-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #f0f4f0;
+      z-index: 600;
+      overflow-y: auto;
+    }
+    .trips-overlay.active { display: block; }
+    .trips-header {
+      background: #1a4a35;
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .trips-header h2 { font-size: 1.1rem; }
+    .trips-body { padding: 16px; max-width: 600px; margin: 0 auto; }
+    .trip-card {
+      background: white;
+      border-radius: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      overflow: hidden;
+    }
+    .trip-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 700;
+      color: #2d6a4f;
+    }
+    .trip-card-header:hover { background: #f9fdf9; }
+    .trip-date-label { font-size: 0.95rem; }
+    .trip-meta { font-size: 0.78rem; color: #aaa; font-weight: 400; }
+    .trip-items-body { padding: 0 16px 12px; display: none; }
+    .trip-items-body.open { display: block; }
+    .trip-section-label {
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #aaa; padding: 8px 0 3px;
+    }
+    .trip-item-line {
+      font-size: 0.9rem; padding: 4px 0;
+      border-bottom: 1px solid #f5f5f5; color: #444;
+    }
+    .trip-item-line:last-child { border-bottom: none; }
+    .trips-empty { text-align: center; color: #aaa; font-style: italic; padding: 40px 20px; }
+
     /* === WEEKLY STAPLES === */
     .staples-card {
       background: #fffbf0;
@@ -443,10 +507,13 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 0;
+      padding: 6px 4px;
       border-bottom: 1px solid #f5edcc;
+      border-radius: 6px;
+      transition: background 0.15s;
     }
     .staple-row:last-child { border-bottom: none; }
+    .staple-row:hover { background: #fef5cc; }
     .staple-name { flex: 1; font-size: 0.92rem; color: #5a3a00; }
     .staple-delete { background: none; border: none; color: #ccc; cursor: pointer; font-size: 0.95rem; padding: 2px 4px; border-radius: 4px; }
     .staple-delete:hover { color: #e07070; }
@@ -811,7 +878,10 @@
 <div class="shopping-overlay" id="shopping-overlay">
   <div class="shop-header">
     <h2 id="shop-title">🛍 Shopping</h2>
-    <button class="shop-exit" onclick="exitShoppingMode()">✕ Exit</button>
+    <div style="display:flex;gap:8px">
+      <button class="shop-history-btn" onclick="openTrips()">📋 Past trips</button>
+      <button class="shop-exit" onclick="exitShoppingMode()">✕ Exit</button>
+    </div>
   </div>
   <div class="shop-body">
     <div id="shop-list-content"></div>
@@ -1399,13 +1469,16 @@
     staples.forEach(s => {
       const row = document.createElement('div');
       row.className = 'staple-row';
+      row.title = 'Click to add to selected list';
+      row.style.cursor = 'pointer';
+      row.onclick = (e) => { if (!e.target.classList.contains('staple-delete')) addOneStaple(s); };
       const name = document.createElement('span');
       name.className = 'staple-name';
       name.textContent = s.name;
       const del = document.createElement('button');
       del.className = 'staple-delete';
       del.textContent = '✕';
-      del.onclick = () => deleteStaple(s);
+      del.onclick = (e) => { e.stopPropagation(); deleteStaple(s); };
       row.append(name, del);
       container.appendChild(row);
     });
@@ -1427,6 +1500,28 @@
     await db.from('grocery_staples').delete().eq('id', s.id);
     staples = staples.filter(x => x.id !== s.id);
     renderStaples();
+  }
+
+  async function addOneStaple(s) {
+    const sel = document.getElementById('staples-target-list');
+    const targetList = sel ? sel.value : currentUser.toLowerCase();
+    const canonTarget = canonical(targetList);
+    const existing = (items[canonTarget] || []).map(i => i.item_name.toLowerCase());
+    if (existing.includes(s.name.toLowerCase())) {
+      setStatus(`"${s.name}" already on that list`);
+      return;
+    }
+    const { data: newItem } = await db.from('grocery_items').insert({
+      list_type: canonTarget, item_name: s.name, section: s.section,
+      checked: false, added_by: currentUser, quantity: 1
+    }).select().single();
+    if (newItem) {
+      if (!items[canonTarget]) items[canonTarget] = [];
+      items[canonTarget].push(newItem);
+      renderAll();
+      const label = PERSON_LIST_LABELS[currentUser]?.[targetList] || targetList;
+      setStatus(`Added "${s.name}" to ${label}`);
+    }
   }
 
   window.addAllStaplesToList = async function() {
