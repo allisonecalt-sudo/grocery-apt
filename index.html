@@ -515,10 +515,30 @@
       letter-spacing: 0.05em; color: #aaa; padding: 8px 0 3px;
     }
     .trip-item-line {
-      font-size: 0.9rem; padding: 4px 0;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.9rem; padding: 6px 0;
       border-bottom: 1px solid #f5f5f5; color: #444;
     }
     .trip-item-line:last-child { border-bottom: none; }
+    .trip-item-cb { width: 18px; height: 18px; accent-color: #52b788; cursor: pointer; flex-shrink: 0; }
+    .trip-item-name { flex: 1; }
+    .trip-add-footer {
+      margin-top: 12px; padding-top: 10px;
+      border-top: 2px solid #f0f0f0;
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .trip-list-picker {
+      flex: 1; min-width: 120px;
+      padding: 8px 10px; border: 2px solid #e0e8e0;
+      border-radius: 10px; font-size: 0.85rem; background: white; outline: none;
+    }
+    .trip-list-picker:focus { border-color: #52b788; }
+    .trip-add-btn {
+      padding: 8px 14px; background: #52b788; color: white;
+      border: none; border-radius: 10px; font-size: 0.85rem;
+      font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .trip-add-btn:hover { background: #40916c; }
     .trips-empty { text-align: center; color: #aaa; font-style: italic; padding: 40px 20px; }
 
     /* === WEEKLY STAPLES === */
@@ -1733,6 +1753,8 @@
   };
 
   // ========== TRIP HISTORY ==========
+  const _tripData = {};
+
   window.openTrips = async function() {
     document.getElementById('trips-overlay').classList.add('active');
     const body = document.getElementById('trips-body');
@@ -1756,16 +1778,14 @@
       const timeStr = date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
       const tripItems = Array.isArray(trip.items) ? trip.items : [];
       const whoShopped = tripItems.length ? (tripItems[0].shopped_by || '') : '';
+      _tripData[idx] = tripItems;
 
       const card = document.createElement('div');
       card.className = 'trip-card';
 
       const header = document.createElement('div');
       header.className = 'trip-card-header';
-      header.onclick = () => {
-        const tripBody = document.getElementById(`trip-body-${idx}`);
-        tripBody.classList.toggle('open');
-      };
+      header.onclick = () => document.getElementById(`trip-body-${idx}`).classList.toggle('open');
       header.innerHTML = `
         <div>
           <div class="trip-date-label">🛒 ${dateStr} · ${timeStr}</div>
@@ -1778,14 +1798,14 @@
       tripBody.className = 'trip-items-body';
       tripBody.id = `trip-body-${idx}`;
 
-      // Group by section
+      // Group by section, each item has a checkbox
       const bySection = {};
-      tripItems.forEach(i => {
+      tripItems.forEach((i, iIdx) => {
         const sec = i.section || 'Other';
         if (!bySection[sec]) bySection[sec] = [];
-        bySection[sec].push(i);
+        bySection[sec].push({ ...i, _iIdx: iIdx });
       });
-      SECTIONS.forEach(sec => {
+      SECTIONS.concat(['Other']).forEach(sec => {
         if (!bySection[sec]) return;
         const label = document.createElement('div');
         label.className = 'trip-section-label';
@@ -1794,14 +1814,70 @@
         bySection[sec].forEach(i => {
           const line = document.createElement('div');
           line.className = 'trip-item-line';
-          line.textContent = i.quantity > 1 ? `${i.item_name} ×${i.quantity}` : i.item_name;
+          const cb = document.createElement('input');
+          cb.type = 'checkbox'; cb.checked = true;
+          cb.className = 'trip-item-cb';
+          cb.id = `trip-cb-${idx}-${i._iIdx}`;
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'trip-item-name';
+          nameSpan.textContent = i.quantity > 1 ? `${i.item_name} ×${i.quantity}` : i.item_name;
+          line.append(cb, nameSpan);
           tripBody.appendChild(line);
         });
       });
 
+      // Footer: list picker + add button
+      const footer = document.createElement('div');
+      footer.className = 'trip-add-footer';
+      const picker = document.createElement('select');
+      picker.className = 'trip-list-picker';
+      picker.id = `trip-picker-${idx}`;
+      Object.entries(LIST_LABEL).forEach(([key, label]) => {
+        const opt = document.createElement('option');
+        opt.value = key; opt.textContent = label;
+        if (key === (currentUser ? currentUser.toLowerCase() : 'apt')) opt.selected = true;
+        picker.appendChild(opt);
+      });
+      const addBtn = document.createElement('button');
+      addBtn.className = 'trip-add-btn';
+      addBtn.textContent = '+ Add selected';
+      addBtn.onclick = () => addTripItems(idx, tripItems.length);
+      footer.append(picker, addBtn);
+      tripBody.appendChild(footer);
+
       card.append(header, tripBody);
       body.appendChild(card);
     });
+  };
+
+  window.addTripItems = async function(idx, totalCount) {
+    const tripItems = _tripData[idx] || [];
+    const picker = document.getElementById(`trip-picker-${idx}`);
+    const targetList = canonical(picker ? picker.value : 'apt');
+
+    const toAdd = tripItems.filter((_, iIdx) => {
+      const cb = document.getElementById(`trip-cb-${idx}-${iIdx}`);
+      return cb && cb.checked;
+    });
+
+    if (!toAdd.length) { setStatus('No items selected'); return; }
+
+    const existing = (items[targetList] || []).map(i => i.item_name.toLowerCase());
+    let added = 0;
+    for (const i of toAdd) {
+      if (existing.includes(i.item_name.toLowerCase())) continue;
+      const { data: newItem } = await db.from('grocery_items').insert({
+        list_type: targetList, item_name: i.item_name, section: i.section,
+        checked: false, added_by: currentUser || 'Unknown', quantity: i.quantity || 1
+      }).select().single();
+      if (newItem) {
+        if (!items[targetList]) items[targetList] = [];
+        items[targetList].push(newItem);
+        added++;
+      }
+    }
+    renderAll();
+    setStatus(`Added ${added} item(s) to ${LIST_LABEL[targetList] || targetList}`);
   };
 
   window.closeTrips = function() {
