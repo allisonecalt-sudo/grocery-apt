@@ -663,8 +663,63 @@
       transition: background 0.2s;
     }
     .nutri-add-to-shopping:hover { background: #2a70a4; }
+    /* ===== RECEIPT MODAL ===== */
+    .receipt-modal-bg {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 900;
+      align-items: flex-end; justify-content: center;
+    }
+    .receipt-modal-bg.active { display: flex; }
+    .receipt-modal {
+      background: white; border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 480px; max-height: 90vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .receipt-modal-header {
+      background: #2d6a4f; color: white; padding: 14px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-shrink: 0;
+    }
+    .receipt-modal-header h3 { margin: 0; font-size: 1rem; }
+    .receipt-modal-body { flex: 1; overflow-y: auto; padding: 14px; }
+    .receipt-modal-footer {
+      padding: 12px 14px; border-top: 1px solid #eee;
+      display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap;
+    }
+    .receipt-section-title {
+      font-size: 0.78rem; font-weight: 700; color: #888;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin: 12px 0 6px; padding-bottom: 4px; border-bottom: 1px solid #eee;
+    }
+    .receipt-match-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 4px; border-bottom: 1px solid #f5f5f5; font-size: 0.85rem;
+    }
+    .receipt-match-name { flex: 1; color: #333; }
+    .receipt-match-price { font-weight: 700; color: #2d6a4f; min-width: 50px; text-align: right; }
+    .receipt-unmatched { color: #e74c3c; }
+    .receipt-save-btn {
+      flex: 1; background: #2d6a4f; color: white; border: none;
+      border-radius: 12px; padding: 10px; font-weight: 700; cursor: pointer; font-size: 0.9rem;
+    }
+    .receipt-manual-btn {
+      background: #f0f0f0; color: #555; border: none;
+      border-radius: 12px; padding: 10px 14px; font-weight: 600; cursor: pointer; font-size: 0.85rem;
+    }
+    .receipt-upload-btn {
+      background: none; border: 1px solid #2d6a4f; color: #2d6a4f;
+      border-radius: 8px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer;
+    }
+    .manual-price-input {
+      width: 70px; padding: 3px 6px; border: 1px solid #ddd;
+      border-radius: 6px; font-size: 0.85rem; text-align: right;
+    }
+    .receipt-total-line {
+      font-weight: 700; color: #333; font-size: 0.9rem; padding: 4px 0;
+    }
   </style>
 </head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <body>
 
 <header>
@@ -1843,9 +1898,9 @@
 
     body.innerHTML = '';
     trips.forEach((trip, idx) => {
-      const date = new Date(trip.trip_date || trip.created_at);
-      const dateStr = date.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-      const timeStr = date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+      const date = new Date(trip.created_at || trip.trip_date);
+      const dateStr = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       const tripItems = Array.isArray(trip.items) ? trip.items : [];
       const whoShopped = trip.shopper || '';
       _tripData[idx] = tripItems;
@@ -1857,12 +1912,13 @@
       header.className = 'trip-card-header';
       header.onclick = () => document.getElementById(`trip-body-${idx}`).classList.toggle('open');
       header.innerHTML = `
-        <div style="flex:1" onclick="document.getElementById('trip-body-${idx}').classList.toggle('open')">
+        <div style="flex:1;cursor:pointer" onclick="document.getElementById('trip-body-${idx}').classList.toggle('open')">
           <div class="trip-date-label">🛒 ${dateStr} · ${timeStr}</div>
-          <div class="trip-meta">${whoShopped || 'Unknown'} · ${tripItems.length} item(s)</div>
+          <div class="trip-meta">Shopped by: ${whoShopped || 'Unknown'} · ${tripItems.length} item(s)</div>
         </div>
-        <button class="trip-delete-btn" onclick="deleteTrip('${trip.id}', this.closest('.trip-card'))">🗑</button>
-        <span style="color:#aaa;font-size:1.1rem;cursor:pointer" onclick="document.getElementById('trip-body-${idx}').classList.toggle('open')">▾</span>
+        <button class="receipt-upload-btn" onclick="event.stopPropagation();openReceiptUpload('${trip.id}', ${JSON.stringify(tripItems).replace(/'/g,"&#39;")})">📄 Receipt</button>
+        <button class="receipt-upload-btn" style="border-color:#aaa;color:#aaa" onclick="event.stopPropagation();openManualReceipt('${trip.id}', ${JSON.stringify(tripItems).replace(/'/g,"&#39;")})">✏ Manual</button>
+        <button class="trip-delete-btn" onclick="event.stopPropagation();deleteTrip('${trip.id}', this.closest('.trip-card'))">🗑</button>
       `;
       header.onclick = null;
 
@@ -1972,9 +2028,174 @@
   };
 
   window.deleteTrip = async function(tripId, cardEl) {
-    if (!confirm('Delete this trip?')) return;
-    await db.from('grocery_trips').delete().eq('id', tripId);
+    cardEl.style.opacity = '0.4';
+    const { error } = await db.from('grocery_trips').delete().eq('id', tripId);
+    if (error) { cardEl.style.opacity = '1'; setStatus('Delete failed'); return; }
     cardEl.remove();
+  };
+
+  // ========== RECEIPT ==========
+  let _receiptTripId = null;
+  let _receiptTripItems = [];
+  let _receiptMatches = [];
+
+  window.openReceiptUpload = function(tripId, tripItems) {
+    _receiptTripId = tripId;
+    _receiptTripItems = tripItems;
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = '.pdf,image/*';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      setStatus('Reading receipt...');
+      try {
+        let parsed = [];
+        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+          parsed = await parsePairzonPDF(file);
+        }
+        if (!parsed.length) { setStatus('Could not read receipt — try manual entry'); openManualReceipt(tripId, tripItems); return; }
+        showReceiptReview(parsed);
+      } catch(e) { setStatus('Could not read receipt — try manual entry'); openManualReceipt(tripId, tripItems); }
+    };
+    input.click();
+  };
+
+  window.openManualReceipt = function(tripId, tripItems) {
+    _receiptTripId = tripId;
+    _receiptTripItems = tripItems;
+    const body = document.getElementById('receipt-modal-body');
+    body.innerHTML = `<div class="receipt-section-title">Enter prices manually</div>` +
+      tripItems.map((item, i) => `
+        <div class="receipt-match-row">
+          <span class="receipt-match-name">${item.item_name}</span>
+          <input class="manual-price-input" id="manual-price-${i}" type="number" min="0" step="0.01" placeholder="₪" />
+        </div>`).join('');
+    _receiptMatches = tripItems.map((item, i) => ({ tripItem: item, price: null, manual: true, idx: i }));
+    document.getElementById('receipt-modal-bg').classList.add('active');
+  };
+
+  async function parsePairzonPDF(file) {
+    if (!window.pdfjsLib) throw new Error('PDF.js not loaded');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const ab = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: ab}).promise;
+    const allItems = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      // Group by row (y position within 4pt)
+      const rows = [];
+      tc.items.filter(i => i.str.trim()).forEach(item => {
+        const y = item.transform[5];
+        const row = rows.find(r => Math.abs(r.y - y) < 4);
+        if (row) row.items.push({ str: item.str, x: item.transform[4] });
+        else rows.push({ y, items: [{ str: item.str, x: item.transform[4] }] });
+      });
+      rows.sort((a, b) => b.y - a.y);
+      rows.forEach(row => {
+        row.items.sort((a, b) => a.x - b.x);
+        const full = row.items.map(i => i.str).join(' ');
+        const hasHebrew = /[\u05D0-\u05EA]{2,}/.test(full);
+        const prices = full.match(/\b\d{1,3}\.\d{2}\b/g);
+        if (!hasHebrew || !prices) return;
+        const price = parseFloat(prices[prices.length - 1]);
+        if (price <= 0 || price >= 500) return;
+        const name = full
+          .replace(/\d{7,}/g, '').replace(/\b\d{1,3}\.\d{2}\b/g, '')
+          .replace(/\b\d+\b/g, '').replace(/["']/g, '').replace(/\s+/g, ' ').trim();
+        if (name.length > 1) allItems.push({ name, price });
+      });
+    }
+    // Deduplicate
+    const seen = new Set();
+    return allItems.filter(i => { const k = `${i.price}|${i.name}`; return seen.has(k) ? false : seen.add(k); });
+  }
+
+  function hebrewMatch(a, b) {
+    if (!a || !b) return 0;
+    const words = s => s.replace(/[^\u05D0-\u05FAa-zA-Z ]/g, '').split(/\s+/).filter(w => w.length >= 2);
+    const wa = words(a), wb = words(b);
+    if (!wa.length || !wb.length) return 0;
+    let hits = 0;
+    wa.forEach(w => { if (wb.some(x => x.includes(w) || w.includes(x))) hits++; });
+    return hits / Math.max(wa.length, wb.length);
+  }
+
+  function showReceiptReview(receiptItems) {
+    const matched = [], unmatchedReceipt = [];
+    const usedTrip = new Set();
+    receiptItems.forEach(ri => {
+      let best = 0, bestIdx = -1;
+      _receiptTripItems.forEach((ti, idx) => {
+        if (usedTrip.has(idx)) return;
+        const s = hebrewMatch(ri.name, ti.item_name);
+        if (s > best) { best = s; bestIdx = idx; }
+      });
+      if (best > 0.25 && bestIdx >= 0) {
+        matched.push({ receiptItem: ri, tripItem: _receiptTripItems[bestIdx], tripIdx: bestIdx });
+        usedTrip.add(bestIdx);
+      } else { unmatchedReceipt.push(ri); }
+    });
+    const unmatchedTrip = _receiptTripItems.filter((_, i) => !usedTrip.has(i));
+    _receiptMatches = matched;
+
+    let html = '';
+    if (matched.length) {
+      html += `<div class="receipt-section-title">✅ Matched (${matched.length})</div>`;
+      matched.forEach((m, i) => {
+        html += `<div class="receipt-match-row">
+          <span class="receipt-match-name">${m.tripItem.item_name}</span>
+          <input class="manual-price-input" id="rp-${i}" type="number" value="${m.receiptItem.price.toFixed(2)}" min="0" step="0.01" />
+        </div>`;
+      });
+    }
+    if (unmatchedReceipt.length) {
+      html += `<div class="receipt-section-title receipt-unmatched">🧾 On receipt, not on list (${unmatchedReceipt.length})</div>`;
+      unmatchedReceipt.forEach(ri => {
+        html += `<div class="receipt-match-row"><span class="receipt-match-name">${ri.name}</span><span class="receipt-match-price">₪${ri.price.toFixed(2)}</span></div>`;
+      });
+    }
+    if (unmatchedTrip.length) {
+      html += `<div class="receipt-section-title" style="color:#e67e22">❓ On list, no price found (${unmatchedTrip.length})</div>`;
+      unmatchedTrip.forEach((ti, i) => {
+        html += `<div class="receipt-match-row">
+          <span class="receipt-match-name">${ti.item_name}</span>
+          <input class="manual-price-input" id="rp-extra-${i}" type="number" min="0" step="0.01" placeholder="₪" />
+        </div>`;
+      });
+      _receiptMatches._unmatchedTrip = unmatchedTrip;
+    }
+    const total = matched.reduce((s, m) => s + m.receiptItem.price, 0);
+    html += `<div class="receipt-total-line" style="margin-top:10px">Receipt total matched: ₪${total.toFixed(2)}</div>`;
+    document.getElementById('receipt-modal-body').innerHTML = html;
+    document.getElementById('receipt-modal-bg').classList.add('active');
+  }
+
+  window.saveReceiptPrices = async function() {
+    const updatedItems = [..._receiptTripItems].map(i => ({ ...i }));
+    _receiptMatches.forEach((m, i) => {
+      const input = document.getElementById(`rp-${i}`);
+      const price = input ? parseFloat(input.value) || null : null;
+      const ti = updatedItems.find(u => u.item_name === m.tripItem.item_name);
+      if (ti) ti.price = price;
+    });
+    // Extra unmatched trip items
+    if (_receiptMatches._unmatchedTrip) {
+      _receiptMatches._unmatchedTrip.forEach((ti, i) => {
+        const input = document.getElementById(`rp-extra-${i}`);
+        const price = input ? parseFloat(input.value) || null : null;
+        const u = updatedItems.find(u => u.item_name === ti.item_name);
+        if (u && price) u.price = price;
+      });
+    }
+    await db.from('grocery_trips').update({ items: updatedItems }).eq('id', _receiptTripId);
+    closeReceiptModal();
+    setStatus('Prices saved!');
+    openTrips(); // refresh
+  };
+
+  window.closeReceiptModal = function() {
+    document.getElementById('receipt-modal-bg').classList.remove('active');
   };
 
   window.closeTrips = function() {
@@ -1992,6 +2213,20 @@
   </div>
   <div class="trips-body" id="trips-body">
     <div class="trips-empty">Loading...</div>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="receipt-modal-bg" id="receipt-modal-bg" onclick="if(event.target===this)closeReceiptModal()">
+  <div class="receipt-modal">
+    <div class="receipt-modal-header">
+      <h3>📄 Match Receipt to Trip</h3>
+      <button onclick="closeReceiptModal()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <div class="receipt-modal-body" id="receipt-modal-body"></div>
+    <div class="receipt-modal-footer">
+      <button class="receipt-save-btn" onclick="saveReceiptPrices()">💾 Save prices</button>
+    </div>
   </div>
 </div>
 
