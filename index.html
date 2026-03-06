@@ -1246,7 +1246,10 @@
   };
 
   window.onKey = function(e, key) {
-    if (e.key === 'Enter') addItem(key);
+    if (e.key === 'Enter') {
+      document.getElementById(`${key}-ac`).style.display = 'none';
+      addItem(key);
+    }
     if (e.key === 'Escape') document.getElementById(`${key}-ac`).style.display = 'none';
   };
 
