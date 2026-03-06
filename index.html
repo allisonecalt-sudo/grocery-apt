@@ -1878,7 +1878,12 @@
   };
 
   // ========== TRIP HISTORY ==========
-  const _tripData = {};
+  const _tripData = {}; // keyed by trip.id
+
+  const LIST_BADGE_COLOR = {
+    apt: '#4a90d9', allison: '#52b788', ruthie: '#9b59b6',
+    avital: '#e67e22', allison_ruthie: '#1abc9c', allison_avital: '#e74c3c', ruthie_avital: '#f39c12'
+  };
 
   window.openTrips = async function() {
     document.getElementById('trips-overlay').classList.add('active');
@@ -1888,7 +1893,7 @@
     const { data: trips, error } = await db
       .from('grocery_trips')
       .select('*')
-      .order('trip_date', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(30);
 
     if (error || !trips || !trips.length) {
@@ -1902,31 +1907,53 @@
       const dateStr = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
       const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       const tripItems = Array.isArray(trip.items) ? trip.items : [];
-      const whoShopped = trip.shopper || '';
-      _tripData[idx] = tripItems;
+      const whoShopped = trip.shopper || 'Unknown';
+      _tripData[trip.id] = { items: tripItems, trip };
 
       const card = document.createElement('div');
       card.className = 'trip-card';
+      card.id = `trip-card-${trip.id}`;
 
+      // Header
       const header = document.createElement('div');
       header.className = 'trip-card-header';
-      header.onclick = () => document.getElementById(`trip-body-${idx}`).classList.toggle('open');
-      header.innerHTML = `
-        <div style="flex:1;cursor:pointer" onclick="document.getElementById('trip-body-${idx}').classList.toggle('open')">
-          <div class="trip-date-label">🛒 ${dateStr} · ${timeStr}</div>
-          <div class="trip-meta">Shopped by: ${whoShopped || 'Unknown'} · ${tripItems.length} item(s)</div>
-        </div>
-        <button class="receipt-upload-btn" onclick="event.stopPropagation();openReceiptUpload('${trip.id}', ${JSON.stringify(tripItems).replace(/'/g,"&#39;")})">📄 Receipt</button>
-        <button class="receipt-upload-btn" style="border-color:#aaa;color:#aaa" onclick="event.stopPropagation();openManualReceipt('${trip.id}', ${JSON.stringify(tripItems).replace(/'/g,"&#39;")})">✏ Manual</button>
-        <button class="trip-delete-btn" onclick="event.stopPropagation();deleteTrip('${trip.id}', this.closest('.trip-card'))">🗑</button>
-      `;
-      header.onclick = null;
+
+      const titleArea = document.createElement('div');
+      titleArea.style.cssText = 'flex:1;cursor:pointer;min-width:0';
+      titleArea.onclick = () => tripBody.classList.toggle('open');
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'trip-date-label';
+      nameEl.innerHTML = `🛒 ${trip.trip_name ? `<strong>${trip.trip_name}</strong> · ` : ''}${dateStr} · ${timeStr}
+        <button onclick="event.stopPropagation();editTripName('${trip.id}','${(trip.trip_name||'').replace(/'/g,'')}')" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.75rem;padding:0 2px">✏</button>`;
+      const metaEl = document.createElement('div');
+      metaEl.className = 'trip-meta';
+      metaEl.textContent = `Shopped by: ${whoShopped} · ${tripItems.length} item(s)`;
+      titleArea.append(nameEl, metaEl);
+
+      const receiptBtn = document.createElement('button');
+      receiptBtn.className = 'receipt-upload-btn';
+      receiptBtn.textContent = '📄 Receipt';
+      receiptBtn.onclick = (e) => { e.stopPropagation(); openReceiptUpload(trip.id); };
+
+      const manualBtn = document.createElement('button');
+      manualBtn.className = 'receipt-upload-btn';
+      manualBtn.style.cssText = 'border-color:#aaa;color:#aaa';
+      manualBtn.textContent = '✏ Manual';
+      manualBtn.onclick = (e) => { e.stopPropagation(); openManualReceipt(trip.id); };
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'trip-delete-btn';
+      delBtn.textContent = '🗑';
+      delBtn.onclick = (e) => { e.stopPropagation(); deleteTrip(trip.id, card); };
+
+      header.append(titleArea, receiptBtn, manualBtn, delBtn);
 
       const tripBody = document.createElement('div');
       tripBody.className = 'trip-items-body';
       tripBody.id = `trip-body-${idx}`;
 
-      // Group by section, each item has a checkbox
+      // Group by section, each item has checkbox + list badge + price
       const bySection = {};
       tripItems.forEach((i, iIdx) => {
         const sec = i.section || 'Other';
@@ -1948,8 +1975,18 @@
           cb.id = `trip-cb-${idx}-${i._iIdx}`;
           const nameSpan = document.createElement('span');
           nameSpan.className = 'trip-item-name';
+          nameSpan.style.flex = '1';
           nameSpan.textContent = i.quantity > 1 ? `${i.item_name} ×${i.quantity}` : i.item_name;
-          line.append(cb, nameSpan);
+          // List badge
+          const listKey = canonical(i.list_type || 'apt');
+          const badge = document.createElement('span');
+          badge.style.cssText = `font-size:0.65rem;padding:1px 6px;border-radius:8px;background:${LIST_BADGE_COLOR[listKey]||'#aaa'}22;color:${LIST_BADGE_COLOR[listKey]||'#aaa'};font-weight:600;flex-shrink:0`;
+          badge.textContent = LIST_LABEL[listKey] || listKey;
+          // Price
+          const priceSpan = document.createElement('span');
+          priceSpan.style.cssText = 'font-size:0.8rem;color:#2d6a4f;font-weight:600;min-width:42px;text-align:right;flex-shrink:0';
+          priceSpan.textContent = i.price ? `₪${parseFloat(i.price).toFixed(2)}` : '';
+          line.append(cb, nameSpan, badge, priceSpan);
           tripBody.appendChild(line);
         });
       });
@@ -2039,9 +2076,18 @@
   let _receiptTripItems = [];
   let _receiptMatches = [];
 
-  window.openReceiptUpload = function(tripId, tripItems) {
+  window.editTripName = async function(tripId, currentName) {
+    const name = prompt('Trip name:', currentName || '');
+    if (name === null) return;
+    await db.from('grocery_trips').update({ trip_name: name }).eq('id', tripId);
+    openTrips();
+  };
+
+  window.openReceiptUpload = function(tripId) {
+    const stored = _tripData[tripId];
+    if (!stored) { setStatus('Trip data not found'); return; }
     _receiptTripId = tripId;
-    _receiptTripItems = tripItems;
+    _receiptTripItems = stored.items;
     const input = document.createElement('input');
     input.type = 'file'; input.accept = '.pdf,image/*';
     input.onchange = async (e) => {
@@ -2053,16 +2099,18 @@
         if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
           parsed = await parsePairzonPDF(file);
         }
-        if (!parsed.length) { setStatus('Could not read receipt — try manual entry'); openManualReceipt(tripId, tripItems); return; }
+        if (!parsed.length) { setStatus('Could not read receipt — try manual entry'); openManualReceipt(tripId); return; }
         showReceiptReview(parsed);
-      } catch(e) { setStatus('Could not read receipt — try manual entry'); openManualReceipt(tripId, tripItems); }
+      } catch(err) { console.error(err); setStatus('Could not read receipt — try manual entry'); openManualReceipt(tripId); }
     };
     input.click();
   };
 
-  window.openManualReceipt = function(tripId, tripItems) {
+  window.openManualReceipt = function(tripId) {
+    const stored = _tripData[tripId];
+    if (!stored) { setStatus('Trip data not found'); return; }
     _receiptTripId = tripId;
-    _receiptTripItems = tripItems;
+    _receiptTripItems = stored.items;
     const body = document.getElementById('receipt-modal-body');
     body.innerHTML = `<div class="receipt-section-title">Enter prices manually</div>` +
       tripItems.map((item, i) => `
