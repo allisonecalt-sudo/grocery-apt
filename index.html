@@ -2004,6 +2004,11 @@
             const v = nameInput.value.trim();
             if (v && v !== i.item_name) { i.item_name = v; saveTripItem(trip.id, i._iIdx, { item_name: v }); }
           });
+          // Section dropdown
+          const secSel = document.createElement('select');
+          secSel.style.cssText = 'font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:90px;flex-shrink:0;background:white';
+          SECTIONS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; if (s === i.section) o.selected = true; secSel.appendChild(o); });
+          secSel.addEventListener('change', () => { i.section = secSel.value; saveTripItem(trip.id, i._iIdx, { section: secSel.value }); setTimeout(() => openTrips(), 400); });
           // List badge
           const listKey = canonical(i.list_type || 'apt');
           const badge = document.createElement('span');
@@ -2011,16 +2016,16 @@
           badge.textContent = LIST_LABEL[listKey] || listKey;
           // Price — editable
           const priceInput = document.createElement('input');
-          priceInput.type = 'number';
-          priceInput.min = '0'; priceInput.step = '0.01';
-          priceInput.value = i.price || '';
-          priceInput.placeholder = '₪';
-          priceInput.style.cssText = 'width:58px;border:1px solid #e0e0e0;border-radius:5px;text-align:right;font-size:0.8rem;color:#2d6a4f;font-weight:600;padding:2px 4px;flex-shrink:0';
-          priceInput.addEventListener('change', () => {
-            const p = parseFloat(priceInput.value) || null;
-            i.price = p; saveTripItem(trip.id, i._iIdx, { price: p });
-          });
-          line.append(cb, nameInput, badge, priceInput);
+          priceInput.type = 'number'; priceInput.min = '0'; priceInput.step = '0.01';
+          priceInput.value = i.price || ''; priceInput.placeholder = '₪';
+          priceInput.style.cssText = 'width:52px;border:1px solid #e0e0e0;border-radius:5px;text-align:right;font-size:0.8rem;color:#2d6a4f;font-weight:600;padding:2px 4px;flex-shrink:0';
+          priceInput.addEventListener('change', () => { const p = parseFloat(priceInput.value) || null; i.price = p; saveTripItem(trip.id, i._iIdx, { price: p }); });
+          // Delete button
+          const delItem = document.createElement('button');
+          delItem.textContent = '×'; delItem.title = 'Remove item';
+          delItem.style.cssText = 'border:none;background:none;color:#ccc;font-size:1.1rem;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1';
+          delItem.addEventListener('click', () => { const td = _tripData[trip.id]; td.items.splice(i._iIdx, 1); db.from('grocery_trips').update({ items: td.items }).eq('id', trip.id); line.remove(); });
+          line.append(cb, nameInput, secSel, badge, priceInput, delItem);
           tripBody.appendChild(line);
         });
       });
@@ -2065,6 +2070,36 @@
       addBtn.onclick = () => addTripItems(idx, tripItems.length);
       footer.append(picker, addBtn);
       tripBody.appendChild(footer);
+
+      // Add new item to this trip
+      const addRow = document.createElement('div');
+      addRow.style.cssText = 'display:flex;gap:6px;padding:8px 12px;border-top:1px solid #f0f0f0;flex-wrap:wrap;align-items:center';
+      const addName = document.createElement('input');
+      addName.type = 'text'; addName.placeholder = 'Add item to trip...';
+      addName.style.cssText = 'flex:1;min-width:100px;border:1px solid #ddd;border-radius:6px;padding:4px 8px;font-size:0.85rem';
+      const addSec = document.createElement('select');
+      addSec.style.cssText = 'font-size:0.75rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;color:#555;max-width:100px';
+      SECTIONS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; addSec.appendChild(o); });
+      const addList = document.createElement('select');
+      addList.style.cssText = 'font-size:0.75rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;color:#555;max-width:110px';
+      Object.entries(LIST_LABEL).forEach(([k, l]) => { const o = document.createElement('option'); o.value = k; o.textContent = l; if (k === (currentUser ? currentUser.toLowerCase() : 'apt')) o.selected = true; addList.appendChild(o); });
+      const addPrice = document.createElement('input');
+      addPrice.type = 'number'; addPrice.min = '0'; addPrice.step = '0.01'; addPrice.placeholder = '₪';
+      addPrice.style.cssText = 'width:60px;border:1px solid #ddd;border-radius:6px;padding:4px 6px;font-size:0.85rem;text-align:right';
+      const addConfirm = document.createElement('button');
+      addConfirm.textContent = '+ Add';
+      addConfirm.style.cssText = 'background:#2d6a4f;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap';
+      addConfirm.onclick = async () => {
+        const name = addName.value.trim(); if (!name) return;
+        const newItem = { item_name: name, section: addSec.value, list_type: addList.value, price: parseFloat(addPrice.value) || null, quantity: 1 };
+        const td = _tripData[trip.id]; td.items.push(newItem);
+        await db.from('grocery_trips').update({ items: td.items }).eq('id', trip.id);
+        addName.value = ''; addPrice.value = '';
+        setTimeout(() => openTrips(), 300);
+      };
+      addName.addEventListener('keydown', e => { if (e.key === 'Enter') addConfirm.click(); });
+      addRow.append(addName, addSec, addList, addPrice, addConfirm);
+      tripBody.appendChild(addRow);
 
       card.append(header, tripBody);
       body.appendChild(card);
