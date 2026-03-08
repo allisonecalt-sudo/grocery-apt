@@ -2252,23 +2252,28 @@
         </div>`;
       });
     }
+    // "On list, not found on receipt" — show BEFORE the unmatched receipt items
+    const matchedNames = new Set(matched.map(m => m.list_item));
+    const notOnReceipt = _receiptTripItems.filter(t => !matchedNames.has(t.item_name));
+    if (notOnReceipt.length) {
+      html += `<div class="receipt-section-title" style="color:#e67e22;margin-top:8px">❓ On your list, not on receipt — enter price if you bought it (${notOnReceipt.length})</div>`;
+      notOnReceipt.forEach((t, i) => {
+        const listKey = canonical(t.list_type || 'apt');
+        const badgeColor = LIST_BADGE_COLOR[listKey] || '#aaa';
+        const badgeLabel = LIST_LABEL[listKey] || listKey;
+        html += `<div class="receipt-match-row" style="gap:4px">
+          <span style="font-size:0.85rem;font-weight:500;flex:1;min-width:60px">${t.item_name}</span>
+          <span style="font-size:0.65rem;padding:1px 5px;border-radius:8px;background:${badgeColor}22;color:${badgeColor};font-weight:600;flex-shrink:0">${badgeLabel}</span>
+          <input class="manual-price-input" id="rp-extra-${i}" type="number" min="0" step="0.01" placeholder="₪" value="${t.price||''}" style="width:70px" />
+        </div>`;
+      });
+    }
     if (unmatched.length) {
-      html += `<div class="receipt-section-title receipt-unmatched">🧾 On receipt, not on your list (${unmatched.length})</div>`;
+      html += `<div class="receipt-section-title receipt-unmatched" style="margin-top:8px">🧾 On receipt, not on your list (${unmatched.length})</div>`;
       unmatched.forEach(u => {
         html += `<div class="receipt-match-row">
           <span class="receipt-match-name">${u.receipt_name}</span>
           <span class="receipt-match-price">₪${parseFloat(u.price||0).toFixed(2)}</span>
-        </div>`;
-      });
-    }
-    const matchedNames = new Set(matched.map(m => m.list_item));
-    const notOnReceipt = _receiptTripItems.filter(t => !matchedNames.has(t.item_name));
-    if (notOnReceipt.length) {
-      html += `<div class="receipt-section-title" style="color:#e67e22">❓ On list, not found on receipt (${notOnReceipt.length})</div>`;
-      notOnReceipt.forEach((t, i) => {
-        html += `<div class="receipt-match-row">
-          <span class="receipt-match-name">${t.item_name}</span>
-          <input class="manual-price-input" id="rp-extra-${i}" type="number" min="0" step="0.01" placeholder="₪" value="${t.price||''}" />
         </div>`;
       });
     }
