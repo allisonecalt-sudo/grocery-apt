@@ -1401,24 +1401,25 @@
   // ========== CHECK ==========
   async function toggleCheck(item, displayKey) {
     const newVal = !item.checked;
-    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
     const canonKey = canonical(displayKey);
     const stored = (items[canonKey] || []).find(i => i.id === item.id);
-    if (stored) {
-      pushHistory({ type: newVal ? 'check' : 'uncheck', item: { ...stored }, canonKey });
-      stored.checked = newVal;
-    }
+    // Optimistic update — render immediately, save in background
+    if (stored) { stored.checked = newVal; }
+    item.checked = newVal;
     renderAll();
+    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
+    if (stored) pushHistory({ type: newVal ? 'check' : 'uncheck', item: { ...stored, checked: !newVal }, canonKey });
   }
 
   // ========== DELETE ==========
   async function deleteItem(item, displayKey) {
     const canonKey = canonical(displayKey);
-    await db.from('grocery_items').delete().eq('id', item.id);
+    // Optimistic update — remove from view immediately, save in background
     items[canonKey] = (items[canonKey] || []).filter(i => i.id !== item.id);
-    pushHistory({ type: 'delete', item, canonKey });
     renderAll();
     setStatus(`Removed "${item.item_name}"`);
+    await db.from('grocery_items').delete().eq('id', item.id);
+    pushHistory({ type: 'delete', item, canonKey });
   }
 
   // ========== CLEAR CHECKED ==========
@@ -1862,11 +1863,11 @@
     setStatus(`Added ${toAdd.length} nutritionist item(s) to your shopping list`);
   };
 
-  window.setPaidBy = async function(item, listKey, value, btnEl) {
+  window.setPaidBy = function(item, listKey, value, btnEl) {
     item.paid_by = value;
     btnEl.closest('.paid-by-pills').querySelectorAll('.paid-by-pill').forEach(b => b.classList.remove('active'));
     btnEl.classList.add('active');
-    await db.from('grocery_items').update({ paid_by: value }).eq('id', item.id);
+    db.from('grocery_items').update({ paid_by: value }).eq('id', item.id); // fire and forget
   };
 
   window.shopClearChecked = async function() {
