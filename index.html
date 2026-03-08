@@ -2033,25 +2033,26 @@
           secSel.style.cssText = 'font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:90px;flex-shrink:0;background:white';
           SECTIONS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; if (s === i.section) o.selected = true; secSel.appendChild(o); });
           secSel.addEventListener('change', () => { i.section = secSel.value; saveTripItem(trip.id, i._iIdx, { section: secSel.value }); setTimeout(() => openTrips(), 400); });
-          // List badge
-          const listKey = canonical(i.list_type || 'apt');
-          const badge = document.createElement('span');
-          badge.style.cssText = `font-size:0.65rem;padding:1px 6px;border-radius:8px;background:${LIST_BADGE_COLOR[listKey]||'#aaa'}22;color:${LIST_BADGE_COLOR[listKey]||'#aaa'};font-weight:600;flex-shrink:0`;
-          badge.textContent = LIST_LABEL[listKey] || listKey;
+          // List type dropdown (editable)
+          let listKey = canonical(i.list_type || 'apt');
+          const listSel = document.createElement('select');
+          listSel.style.cssText = `font-size:0.65rem;padding:1px 4px;border-radius:8px;background:${LIST_BADGE_COLOR[listKey]||'#aaa'}22;color:${LIST_BADGE_COLOR[listKey]||'#aaa'};font-weight:600;flex-shrink:0;border:1px solid ${LIST_BADGE_COLOR[listKey]||'#aaa'}66;cursor:pointer`;
+          Object.entries(LIST_LABEL).forEach(([k, l]) => { const o = document.createElement('option'); o.value = k; o.textContent = l; if (k === listKey) o.selected = true; listSel.appendChild(o); });
           // Price — editable
           const priceInput = document.createElement('input');
           priceInput.type = 'number'; priceInput.min = '0'; priceInput.step = '0.01';
           priceInput.value = i.price || ''; priceInput.placeholder = '₪';
           priceInput.style.cssText = 'width:52px;border:1px solid #e0e0e0;border-radius:5px;text-align:right;font-size:0.8rem;color:#2d6a4f;font-weight:600;padding:2px 4px;flex-shrink:0';
           priceInput.addEventListener('change', () => { const p = parseFloat(priceInput.value) || null; i.price = p; saveTripItem(trip.id, i._iIdx, { price: p }); });
-          // Paid-by pills for shared lists (joint / Allison / Avital etc.)
-          const paidByOpts = PAID_BY_OPTIONS[listKey];
-          let paidByWrap = null;
-          if (paidByOpts) {
-            paidByWrap = document.createElement('div');
-            paidByWrap.style.cssText = 'display:flex;gap:2px;flex-shrink:0;align-items:center';
-            const bc = LIST_BADGE_COLOR[listKey] || '#aaa';
-            paidByOpts.forEach(opt => {
+          // Paid-by pills container (rebuilt when list changes)
+          const paidByWrap = document.createElement('div');
+          paidByWrap.style.cssText = 'display:flex;gap:2px;flex-shrink:0;align-items:center';
+          function buildPaidByPills(lk) {
+            paidByWrap.innerHTML = '';
+            const opts = PAID_BY_OPTIONS[lk];
+            if (!opts) return;
+            const bc = LIST_BADGE_COLOR[lk] || '#aaa';
+            opts.forEach(opt => {
               const pill = document.createElement('button');
               const current = i.paid_by || 'joint';
               const isActive = current === opt;
@@ -2060,7 +2061,7 @@
               pill.addEventListener('click', () => {
                 i.paid_by = opt; saveTripItem(trip.id, i._iIdx, { paid_by: opt });
                 paidByWrap.querySelectorAll('button').forEach((b, bi) => {
-                  const active = paidByOpts[bi] === opt;
+                  const active = opts[bi] === opt;
                   b.style.border = `1px solid ${active?bc:'#ddd'}`; b.style.background = active?bc+'22':'white';
                   b.style.color = active?bc:'#bbb'; b.style.fontWeight = active?'700':'400';
                 });
@@ -2068,13 +2069,21 @@
               paidByWrap.appendChild(pill);
             });
           }
+          buildPaidByPills(listKey);
+          listSel.addEventListener('change', () => {
+            listKey = listSel.value;
+            i.list_type = listKey;
+            const bc = LIST_BADGE_COLOR[listKey] || '#aaa';
+            listSel.style.background = bc + '22'; listSel.style.color = bc; listSel.style.borderColor = bc + '66';
+            saveTripItem(trip.id, i._iIdx, { list_type: listKey });
+            buildPaidByPills(listKey);
+          });
           // Delete button
           const delItem = document.createElement('button');
           delItem.textContent = '×'; delItem.title = 'Remove item';
           delItem.style.cssText = 'border:none;background:none;color:#ccc;font-size:1.1rem;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1';
           delItem.addEventListener('click', () => { const td = _tripData[trip.id]; td.items.splice(i._iIdx, 1); db.from('grocery_trips').update({ items: td.items }).eq('id', trip.id); line.remove(); });
-          const rowItems = [cb, nameInput, qtyWrap, secSel, badge];
-          if (paidByWrap) rowItems.push(paidByWrap);
+          const rowItems = [cb, nameInput, qtyWrap, secSel, listSel, paidByWrap];
           rowItems.push(priceInput, delItem);
           line.append(...rowItems);
           tripBody.appendChild(line);
