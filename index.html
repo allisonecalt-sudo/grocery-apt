@@ -2131,8 +2131,24 @@
           if (result.matched) allMatched.push(...result.matched);
           if (result.unmatched) allUnmatched.push(...result.unmatched);
         }
+        // Deduplicate matched: keep first match per list_item
+        const seenListItems = new Set();
+        const dedupedMatched = [];
+        for (const m of allMatched) {
+          const key = (m.list_item || '').toLowerCase().trim();
+          if (!seenListItems.has(key)) { seenListItems.add(key); dedupedMatched.push(m); }
+        }
+        // Deduplicate unmatched: remove already-matched items, collapse same name+price duplicates
+        const seenUnmatched = new Set();
+        const dedupedUnmatched = allUnmatched.filter(u => {
+          const nameKey = (u.receipt_name || '').toLowerCase().trim();
+          const dupKey = nameKey + '|' + u.price;
+          if (seenListItems.has(nameKey)) return false;
+          if (seenUnmatched.has(dupKey)) return false;
+          seenUnmatched.add(dupKey); return true;
+        });
         hideLoadingOverlay();
-        showReceiptReviewAI({ matched: allMatched, unmatched: allUnmatched });
+        showReceiptReviewAI({ matched: dedupedMatched, unmatched: dedupedUnmatched });
         setStatus('');
       } catch(err) {
         hideLoadingOverlay();
