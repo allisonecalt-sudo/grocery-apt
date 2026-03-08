@@ -2319,16 +2319,22 @@
       });
     }
     if (unmatched.length) {
-      html += `<div class="receipt-section-title receipt-unmatched" style="margin-top:8px">🧾 On receipt, not on your list (${unmatched.length})</div>`;
-      unmatched.forEach(u => {
-        html += `<div class="receipt-match-row">
-          <span class="receipt-match-name">${u.receipt_name}</span>
+      html += `<div class="receipt-section-title receipt-unmatched" style="margin-top:8px">🧾 On receipt, not on your list — check to add (${unmatched.length})</div>`;
+      const sectionOpts = SECTIONS.map(s => `<option value="${s}">${s}</option>`).join('');
+      const listOpts = Object.entries(LIST_LABEL).map(([k,l]) => `<option value="${k}">${l}</option>`).join('');
+      unmatched.forEach((u, i) => {
+        html += `<div class="receipt-match-row" style="gap:4px;align-items:center">
+          <input type="checkbox" id="add-u-${i}" style="flex-shrink:0;cursor:pointer;width:15px;height:15px" />
+          <input id="uname-${i}" type="text" value="${(u.receipt_name||'').replace(/"/g,'&quot;')}" style="font-size:0.82rem;border:1px solid #e0e0e0;border-radius:5px;padding:2px 5px;flex:1;min-width:70px" />
+          <select id="usec-${i}" style="font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:80px;background:white">${sectionOpts}</select>
+          <select id="ulist-${i}" style="font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:105px;background:white">${listOpts}</select>
           <span class="receipt-match-price">₪${parseFloat(u.price||0).toFixed(2)}</span>
         </div>`;
       });
     }
     _receiptMatches = matched;
     _receiptMatches._unmatchedTrip = notOnReceipt;
+    _receiptMatches._unmatchedReceipt = unmatched;
     document.getElementById('receipt-modal-body').innerHTML = html;
     document.getElementById('receipt-modal-bg').classList.add('active');
     setStatus('');
@@ -2480,6 +2486,20 @@
           const price = input ? parseFloat(input.value) || null : null;
           const u = updatedItems.find(u => u.item_name === ti.item_name);
           if (u && price) u.price = price;
+        });
+      }
+      // Add checked unmatched receipt items as new trip items
+      if (_receiptMatches._unmatchedReceipt) {
+        _receiptMatches._unmatchedReceipt.forEach((u, i) => {
+          const chk = document.getElementById(`add-u-${i}`);
+          if (!chk || !chk.checked) return;
+          const nameEl = document.getElementById(`uname-${i}`);
+          const secEl = document.getElementById(`usec-${i}`);
+          const listEl = document.getElementById(`ulist-${i}`);
+          const name = (nameEl ? nameEl.value.trim() : u.receipt_name) || u.receipt_name;
+          const section = secEl ? secEl.value : 'Other';
+          const list_type = listEl ? listEl.value : 'apt';
+          if (name) updatedItems.push({ item_name: name, section, list_type, price: parseFloat(u.price||0) || null, quantity: 1 });
         });
       }
     }
