@@ -2077,6 +2077,7 @@
             listSel.style.background = bc + '22'; listSel.style.color = bc; listSel.style.borderColor = bc + '66';
             saveTripItem(trip.id, i._iIdx, { list_type: listKey });
             buildPaidByPills(listKey);
+            setTimeout(() => openTrips(), 400);
           });
           // Delete button
           const delItem = document.createElement('button');
@@ -2134,8 +2135,15 @@
       // Add new item to this trip
       const addRow = document.createElement('div');
       addRow.style.cssText = 'display:flex;gap:6px;padding:8px 12px;border-top:1px solid #f0f0f0;flex-wrap:wrap;align-items:center';
+      // Build lookup map from all items in all lists
+      const allListItems = Object.values(items).flat();
+      const dlId = `trip-add-dl-${idx}`;
+      const dl = document.createElement('datalist'); dl.id = dlId;
+      allListItems.forEach(it => { const o = document.createElement('option'); o.value = it.item_name; dl.appendChild(o); });
+      addRow.appendChild(dl);
       const addName = document.createElement('input');
       addName.type = 'text'; addName.placeholder = 'Add item to trip...';
+      addName.setAttribute('list', dlId);
       addName.style.cssText = 'flex:1;min-width:100px;border:1px solid #ddd;border-radius:6px;padding:4px 8px;font-size:0.85rem';
       const addSec = document.createElement('select');
       addSec.style.cssText = 'font-size:0.75rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;color:#555;max-width:100px';
@@ -2143,6 +2151,11 @@
       const addList = document.createElement('select');
       addList.style.cssText = 'font-size:0.75rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;color:#555;max-width:110px';
       Object.entries(LIST_LABEL).forEach(([k, l]) => { const o = document.createElement('option'); o.value = k; o.textContent = l; if (k === (currentUser ? currentUser.toLowerCase() : 'apt')) o.selected = true; addList.appendChild(o); });
+      // Autofill section + list when a known item is picked
+      addName.addEventListener('input', () => {
+        const match = allListItems.find(it => it.item_name.toLowerCase() === addName.value.toLowerCase());
+        if (match) { addSec.value = match.section || 'Other'; addList.value = canonical(match.list_type || 'apt'); }
+      });
       const addPrice = document.createElement('input');
       addPrice.type = 'number'; addPrice.min = '0'; addPrice.step = '0.01'; addPrice.placeholder = '₪';
       addPrice.style.cssText = 'width:60px;border:1px solid #ddd;border-radius:6px;padding:4px 6px;font-size:0.85rem;text-align:right';
@@ -2502,6 +2515,13 @@
           if (name) updatedItems.push({ item_name: name, section, list_type, price: parseFloat(u.price||0) || null, quantity: 1 });
         });
       }
+      // Safety net: never drop items that exist in current trip state
+      const currentItems = (_tripData[_receiptTripId] || {}).items || [];
+      currentItems.forEach(ci => {
+        if (ci.item_name && !updatedItems.some(u => u.item_name === ci.item_name)) {
+          updatedItems.push({ ...ci });
+        }
+      });
     }
 
     await db.from('grocery_trips').update({ items: updatedItems }).eq('id', _receiptTripId);
