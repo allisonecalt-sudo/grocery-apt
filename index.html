@@ -1996,7 +1996,7 @@
           // Name — editable
           const nameInput = document.createElement('input');
           nameInput.type = 'text';
-          nameInput.value = i.quantity > 1 ? `${i.item_name} ×${i.quantity}` : i.item_name;
+          nameInput.value = i.item_name;
           nameInput.style.cssText = 'flex:1;border:none;background:transparent;font-size:0.9rem;padding:2px 4px;min-width:0;border-radius:4px;cursor:text';
           nameInput.addEventListener('focus', () => nameInput.style.background = '#f5f5f5');
           nameInput.addEventListener('blur', () => {
@@ -2004,6 +2004,16 @@
             const v = nameInput.value.trim();
             if (v && v !== i.item_name) { i.item_name = v; saveTripItem(trip.id, i._iIdx, { item_name: v }); }
           });
+          // Qty — editable
+          const qtyWrap = document.createElement('span');
+          qtyWrap.style.cssText = 'display:flex;align-items:center;gap:1px;flex-shrink:0;color:#888;font-size:0.75rem';
+          qtyWrap.textContent = '×';
+          const qtyInput = document.createElement('input');
+          qtyInput.type = 'number'; qtyInput.min = '1'; qtyInput.max = '99';
+          qtyInput.value = i.quantity || 1;
+          qtyInput.style.cssText = 'width:32px;border:1px solid #e0e0e0;border-radius:4px;text-align:center;font-size:0.78rem;padding:1px 2px;color:#555';
+          qtyInput.addEventListener('change', () => { const q = parseInt(qtyInput.value) || 1; i.quantity = q; saveTripItem(trip.id, i._iIdx, { quantity: q }); });
+          qtyWrap.appendChild(qtyInput);
           // Section dropdown
           const secSel = document.createElement('select');
           secSel.style.cssText = 'font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:90px;flex-shrink:0;background:white';
@@ -2025,7 +2035,7 @@
           delItem.textContent = '×'; delItem.title = 'Remove item';
           delItem.style.cssText = 'border:none;background:none;color:#ccc;font-size:1.1rem;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1';
           delItem.addEventListener('click', () => { const td = _tripData[trip.id]; td.items.splice(i._iIdx, 1); db.from('grocery_trips').update({ items: td.items }).eq('id', trip.id); line.remove(); });
-          line.append(cb, nameInput, secSel, badge, priceInput, delItem);
+          line.append(cb, nameInput, qtyWrap, secSel, badge, priceInput, delItem);
           tripBody.appendChild(line);
         });
       });
