@@ -2042,8 +2042,15 @@
           const priceInput = document.createElement('input');
           priceInput.type = 'number'; priceInput.min = '0'; priceInput.step = '0.01';
           priceInput.value = i.price || ''; priceInput.placeholder = '₪';
-          priceInput.style.cssText = 'width:52px;border:1px solid #e0e0e0;border-radius:5px;text-align:right;font-size:0.8rem;color:#2d6a4f;font-weight:600;padding:2px 4px;flex-shrink:0';
-          priceInput.addEventListener('change', () => { const p = parseFloat(priceInput.value) || null; i.price = p; saveTripItem(trip.id, i._iIdx, { price: p }); });
+          const missingPrice = !i.price;
+          priceInput.style.cssText = `width:52px;border:1px solid ${missingPrice?'#e74c3c':'#e0e0e0'};border-radius:5px;text-align:right;font-size:0.8rem;color:${missingPrice?'#e74c3c':'#2d6a4f'};font-weight:600;padding:2px 4px;flex-shrink:0`;
+          if (missingPrice) priceInput.title = 'Missing price';
+          priceInput.addEventListener('change', () => {
+            const p = parseFloat(priceInput.value) || null;
+            i.price = p; saveTripItem(trip.id, i._iIdx, { price: p });
+            priceInput.style.border = p ? '1px solid #e0e0e0' : '1px solid #e74c3c';
+            priceInput.style.color = p ? '#2d6a4f' : '#e74c3c';
+          });
           // Paid-by pills container (rebuilt when list changes)
           const paidByWrap = document.createElement('div');
           paidByWrap.style.cssText = 'display:flex;gap:2px;flex-shrink:0;align-items:center';
