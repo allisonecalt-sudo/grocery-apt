@@ -2118,37 +2118,17 @@
       if (!file) return;
       showLoadingOverlay('📄 Reading your receipt...\nAI is matching items to your list');
       try {
+        // Collect ALL pages then send in one request so AI sees the full receipt
         const pages = await fileToBase64Pages(file);
-        const allMatched = [], allUnmatched = [];
-        for (const { data, mimeType } of pages) {
-          const res = await fetch('https://hpiyvnfhoqnnnotrmwaz.supabase.co/functions/v1/parse-receipt', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
-            body: JSON.stringify({ imageData: data, mimeType, tripItems: _receiptTripItems })
-          });
-          const result = await res.json();
-          if (result.error) throw new Error(result.error);
-          if (result.matched) allMatched.push(...result.matched);
-          if (result.unmatched) allUnmatched.push(...result.unmatched);
-        }
-        // Deduplicate matched: keep first match per list_item
-        const seenListItems = new Set();
-        const dedupedMatched = [];
-        for (const m of allMatched) {
-          const key = (m.list_item || '').toLowerCase().trim();
-          if (!seenListItems.has(key)) { seenListItems.add(key); dedupedMatched.push(m); }
-        }
-        // Deduplicate unmatched: remove already-matched items, collapse same name+price duplicates
-        const seenUnmatched = new Set();
-        const dedupedUnmatched = allUnmatched.filter(u => {
-          const nameKey = (u.receipt_name || '').toLowerCase().trim();
-          const dupKey = nameKey + '|' + u.price;
-          if (seenListItems.has(nameKey)) return false;
-          if (seenUnmatched.has(dupKey)) return false;
-          seenUnmatched.add(dupKey); return true;
+        const res = await fetch('https://hpiyvnfhoqnnnotrmwaz.supabase.co/functions/v1/parse-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          body: JSON.stringify({ pages: pages.map(p => ({ imageData: p.data, mimeType: p.mimeType })), tripItems: _receiptTripItems })
         });
+        const result = await res.json();
+        if (result.error) throw new Error(result.error);
         hideLoadingOverlay();
-        showReceiptReviewAI({ matched: dedupedMatched, unmatched: dedupedUnmatched });
+        showReceiptReviewAI({ matched: result.matched || [], unmatched: result.unmatched || [] });
         setStatus('');
       } catch(err) {
         hideLoadingOverlay();
@@ -2192,8 +2172,9 @@
     if (matched.length) {
       html += `<div class="receipt-section-title">✅ Matched (${matched.length})</div>`;
       matched.forEach((m, i) => {
+        const qtyLabel = m.qty && m.qty > 1 ? ` <span style="font-size:0.75rem;color:#4caf50;font-weight:600">×${m.qty}</span>` : '';
         html += `<div class="receipt-match-row">
-          <span class="receipt-match-name">${m.list_item}</span>
+          <span class="receipt-match-name">${m.list_item}${qtyLabel}</span>
           <span style="font-size:0.72rem;color:#aaa;flex:1;padding:0 4px;overflow:hidden;white-space:nowrap">${m.receipt_name}</span>
           <input class="manual-price-input" id="rp-${i}" type="number" value="${m.price||''}" min="0" step="0.01" />
         </div>`;
