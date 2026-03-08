@@ -1874,7 +1874,15 @@
     const allChecked = [];
     for (const listKey of lists) {
       (items[listKey] || []).filter(i => i.checked).forEach(i => {
-        allChecked.push({ item_name: i.item_name, section: i.section, list_type: i.list_type, quantity: i.quantity || 1, paid_by: i.paid_by || 'joint' });
+        // If paid_by is already "Avital"/"Allison" etc on a shared list, resolve to that person's individual list
+        const paidBy = i.paid_by || 'joint';
+        const _autoList = {
+          allison_avital: { joint: 'allison_avital', Allison: 'allison', Avital: 'avital' },
+          allison_ruthie: { joint: 'allison_ruthie', Allison: 'allison', Ruthie: 'ruthie' },
+          ruthie_avital:  { joint: 'ruthie_avital', Ruthie: 'ruthie', Avital: 'avital' },
+        };
+        const resolvedList = _autoList[canonical(i.list_type)]?.[paidBy] || i.list_type;
+        allChecked.push({ item_name: i.item_name, section: i.section, list_type: resolvedList, quantity: i.quantity || 1, paid_by: paidBy });
       });
     }
     if (!allChecked.length) return;
