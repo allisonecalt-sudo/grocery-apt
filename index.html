@@ -1377,10 +1377,19 @@
     if (!section) { setStatus('Please select a section'); return; }
     document.getElementById(`${key}-ac`).style.display = 'none';
 
+    // Optimistic: show item immediately with temp ID, replace once DB responds
+    const tempId = 'temp-' + Date.now();
+    const tempItem = { id: tempId, item_name: name, section, list_type: canonKey, checked: false, added_by: currentUser || '', quantity, paid_by: 'joint' };
+    if (!items[canonKey]) items[canonKey] = [];
+    items[canonKey].push(tempItem);
+    renderAll();
+    input.value = ''; sec.value = ''; if (qtyEl) qtyEl.value = 1;
+    setStatus(`Added "${name}"`);
+
     const lower = name.toLowerCase();
     if (!catalog[lower]) {
-      const { data: catRow } = await db.from('grocery_catalog').insert({ name: lower, section }).select().single();
-      if (catRow) catalog[lower] = { section, id: catRow.id };
+      db.from('grocery_catalog').insert({ name: lower, section }).select().single()
+        .then(({ data: catRow }) => { if (catRow) catalog[lower] = { section, id: catRow.id }; });
     }
 
     const { data: newItem } = await db.from('grocery_items').insert({
@@ -1389,12 +1398,11 @@
     }).select().single();
 
     if (newItem) {
-      if (!items[canonKey]) items[canonKey] = [];
-      items[canonKey].push(newItem);
+      const idx = (items[canonKey] || []).findIndex(i => i.id === tempId);
+      if (idx >= 0) items[canonKey][idx] = newItem;
+      else { items[canonKey] = (items[canonKey] || []).filter(i => i.id !== tempId); items[canonKey].push(newItem); }
       pushHistory({ type: 'add', item: newItem, canonKey });
       renderAll();
-      input.value = ''; sec.value = ''; if (qtyEl) qtyEl.value = 1;
-      setStatus(`Added "${name}" x${quantity}`);
     }
   };
 
