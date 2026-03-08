@@ -722,6 +722,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <body>
 
+<!-- Loading overlay for receipt AI -->
+<div id="loading-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
+  <div style="width:56px; height:56px; border:5px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.9s linear infinite;"></div>
+  <div id="loading-overlay-text" style="color:white; font-size:18px; font-weight:600; text-align:center; white-space:pre-line; line-height:1.6;"></div>
+</div>
+<style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+
 <header>
   <div class="header-row1">
     <h1>🛒 Apt Grocery</h1>
@@ -1563,10 +1570,19 @@
     document.getElementById(chevId).classList.toggle('open');
   };
 
-  function setStatus(msg) {
+  function setStatus(msg, persistent) {
     const bar = document.getElementById('status-bar');
     bar.textContent = msg;
-    setTimeout(() => bar.textContent = '', 3000);
+    if (!persistent) setTimeout(() => bar.textContent = '', 3000);
+  }
+
+  function showLoadingOverlay(msg) {
+    document.getElementById('loading-overlay-text').textContent = msg || 'Loading...';
+    document.getElementById('loading-overlay').style.display = 'flex';
+  }
+
+  function hideLoadingOverlay() {
+    document.getElementById('loading-overlay').style.display = 'none';
   }
 
   // ========== SHOPPING MODE ==========
@@ -2100,7 +2116,7 @@
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      setStatus('Reading receipt... ⏳');
+      showLoadingOverlay('📄 Reading your receipt...\nAI is matching items to your list');
       try {
         const pages = await fileToBase64Pages(file);
         const allMatched = [], allUnmatched = [];
@@ -2115,9 +2131,11 @@
           if (result.matched) allMatched.push(...result.matched);
           if (result.unmatched) allUnmatched.push(...result.unmatched);
         }
+        hideLoadingOverlay();
         showReceiptReviewAI({ matched: allMatched, unmatched: allUnmatched });
         setStatus('');
       } catch(err) {
+        hideLoadingOverlay();
         console.error(err);
         setStatus('Could not read receipt — opening manual entry');
         openManualReceipt(tripId);
