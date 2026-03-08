@@ -1993,20 +1993,34 @@
           cb.type = 'checkbox'; cb.checked = true;
           cb.className = 'trip-item-cb';
           cb.id = `trip-cb-${idx}-${i._iIdx}`;
-          const nameSpan = document.createElement('span');
-          nameSpan.className = 'trip-item-name';
-          nameSpan.style.flex = '1';
-          nameSpan.textContent = i.quantity > 1 ? `${i.item_name} ×${i.quantity}` : i.item_name;
+          // Name — editable
+          const nameInput = document.createElement('input');
+          nameInput.type = 'text';
+          nameInput.value = i.quantity > 1 ? `${i.item_name} ×${i.quantity}` : i.item_name;
+          nameInput.style.cssText = 'flex:1;border:none;background:transparent;font-size:0.9rem;padding:2px 4px;min-width:0;border-radius:4px;cursor:text';
+          nameInput.addEventListener('focus', () => nameInput.style.background = '#f5f5f5');
+          nameInput.addEventListener('blur', () => {
+            nameInput.style.background = 'transparent';
+            const v = nameInput.value.trim();
+            if (v && v !== i.item_name) { i.item_name = v; saveTripItem(trip.id, i._iIdx, { item_name: v }); }
+          });
           // List badge
           const listKey = canonical(i.list_type || 'apt');
           const badge = document.createElement('span');
           badge.style.cssText = `font-size:0.65rem;padding:1px 6px;border-radius:8px;background:${LIST_BADGE_COLOR[listKey]||'#aaa'}22;color:${LIST_BADGE_COLOR[listKey]||'#aaa'};font-weight:600;flex-shrink:0`;
           badge.textContent = LIST_LABEL[listKey] || listKey;
-          // Price
-          const priceSpan = document.createElement('span');
-          priceSpan.style.cssText = 'font-size:0.8rem;color:#2d6a4f;font-weight:600;min-width:42px;text-align:right;flex-shrink:0';
-          priceSpan.textContent = i.price ? `₪${parseFloat(i.price).toFixed(2)}` : '';
-          line.append(cb, nameSpan, badge, priceSpan);
+          // Price — editable
+          const priceInput = document.createElement('input');
+          priceInput.type = 'number';
+          priceInput.min = '0'; priceInput.step = '0.01';
+          priceInput.value = i.price || '';
+          priceInput.placeholder = '₪';
+          priceInput.style.cssText = 'width:58px;border:1px solid #e0e0e0;border-radius:5px;text-align:right;font-size:0.8rem;color:#2d6a4f;font-weight:600;padding:2px 4px;flex-shrink:0';
+          priceInput.addEventListener('change', () => {
+            const p = parseFloat(priceInput.value) || null;
+            i.price = p; saveTripItem(trip.id, i._iIdx, { price: p });
+          });
+          line.append(cb, nameInput, badge, priceInput);
           tripBody.appendChild(line);
         });
       });
@@ -2093,6 +2107,13 @@
     if (error) { cardEl.style.opacity = '1'; setStatus('Delete failed'); return; }
     cardEl.remove();
   };
+
+  async function saveTripItem(tripId, itemIdx, updates) {
+    const tripData = _tripData[tripId];
+    if (!tripData) return;
+    Object.assign(tripData.items[itemIdx], updates);
+    await db.from('grocery_trips').update({ items: tripData.items }).eq('id', tripId);
+  }
 
   // ========== RECEIPT ==========
   let _receiptTripId = null;
