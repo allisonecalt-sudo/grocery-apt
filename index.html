@@ -1962,12 +1962,26 @@
       manualBtn.textContent = '✏ Manual';
       manualBtn.onclick = (e) => { e.stopPropagation(); openManualReceipt(trip.id); };
 
+      const resetBtn = document.createElement('button');
+      resetBtn.className = 'receipt-upload-btn';
+      resetBtn.style.cssText = 'border-color:#e74c3c;color:#e74c3c;font-size:0.72rem';
+      resetBtn.textContent = '↺ ₪';
+      resetBtn.title = 'Clear all prices';
+      resetBtn.onclick = async (e) => {
+        e.stopPropagation();
+        if (!confirm('Clear all prices for this trip?')) return;
+        const td = _tripData[trip.id];
+        td.items = td.items.map(i => ({ ...i, price: null }));
+        await db.from('grocery_trips').update({ items: td.items }).eq('id', trip.id);
+        openTrips();
+      };
+
       const delBtn = document.createElement('button');
       delBtn.className = 'trip-delete-btn';
       delBtn.textContent = '🗑';
       delBtn.onclick = (e) => { e.stopPropagation(); deleteTrip(trip.id, card); };
 
-      header.append(titleArea, receiptBtn, manualBtn, delBtn);
+      header.append(titleArea, receiptBtn, manualBtn, resetBtn, delBtn);
 
       const tripBody = document.createElement('div');
       tripBody.className = 'trip-items-body';
