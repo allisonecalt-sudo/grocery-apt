@@ -2119,10 +2119,17 @@
         });
       });
 
-      // Breakdown by list
+      // Breakdown by list — sub-divide shared lists by paid_by
+      const _bdAutoList = {
+        allison_avital: { joint: 'allison_avital', Allison: 'allison', Avital: 'avital' },
+        allison_ruthie: { joint: 'allison_ruthie', Allison: 'allison', Ruthie: 'ruthie' },
+        ruthie_avital:  { joint: 'ruthie_avital', Ruthie: 'ruthie', Avital: 'avital' },
+      };
       const breakdown = {};
       tripItems.forEach(i => {
-        const key = canonical(i.list_type || 'apt');
+        const listType = canonical(i.list_type || 'apt');
+        const paidBy = i.paid_by || 'joint';
+        const key = _bdAutoList[listType]?.[paidBy] || listType;
         if (!breakdown[key]) breakdown[key] = { count: 0, total: 0 };
         breakdown[key].count++;
         if (i.price) breakdown[key].total += parseFloat(i.price);
