@@ -2328,8 +2328,11 @@
     let html = '';
     if (matched.length) {
       html += `<div class="receipt-section-title">✅ Matched (${matched.length})</div>`;
+      // Track used trip item indices so duplicates (e.g. 2x cottage cheese) each get their own badge
+      const usedTripIdxs = new Set();
       matched.forEach((m, i) => {
-        const tripItem = _receiptTripItems.find(t => t.item_name === m.list_item);
+        const tripItem = _receiptTripItems.find((t, idx) => t.item_name === m.list_item && !usedTripIdxs.has(idx));
+        if (tripItem) usedTripIdxs.add(_receiptTripItems.indexOf(tripItem));
         const listKey = canonical((tripItem && tripItem.list_type) || 'apt');
         const badgeColor = LIST_BADGE_COLOR[listKey] || '#aaa';
         const badgeLabel = LIST_LABEL[listKey] || listKey;
