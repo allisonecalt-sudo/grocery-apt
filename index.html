@@ -1922,20 +1922,28 @@
     avital: '#e67e22', allison_ruthie: '#1abc9c', allison_avital: '#e74c3c', ruthie_avital: '#f39c12'
   };
 
-  window.openTrips = async function() {
+  let _tripsCache = null;
+
+  window.openTrips = async function(soft = false) {
     document.getElementById('trips-overlay').classList.add('active');
     const body = document.getElementById('trips-body');
-    body.innerHTML = '<div class="trips-empty">Loading...</div>';
+    if (!soft || !_tripsCache) body.innerHTML = '<div class="trips-empty">Loading...</div>';
 
-    const { data: trips, error } = await db
-      .from('grocery_trips')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(30);
-
-    if (error || !trips || !trips.length) {
-      body.innerHTML = '<div class="trips-empty">No trips logged yet. Clear checked items after shopping to save a trip.</div>';
-      return;
+    let trips;
+    if (soft && _tripsCache) {
+      trips = _tripsCache;
+    } else {
+      const { data, error } = await db
+        .from('grocery_trips')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (error || !data || !data.length) {
+        body.innerHTML = '<div class="trips-empty">No trips logged yet. Clear checked items after shopping to save a trip.</div>';
+        return;
+      }
+      trips = data;
+      _tripsCache = trips;
     }
 
     body.innerHTML = '';
@@ -2049,7 +2057,7 @@
           const secSel = document.createElement('select');
           secSel.style.cssText = 'font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:90px;flex-shrink:0;background:white';
           SECTIONS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; if (s === i.section) o.selected = true; secSel.appendChild(o); });
-          secSel.addEventListener('change', () => { i.section = secSel.value; saveTripItem(trip.id, i._iIdx, { section: secSel.value }); setTimeout(() => openTrips(), 400); });
+          secSel.addEventListener('change', () => { i.section = secSel.value; saveTripItem(trip.id, i._iIdx, { section: secSel.value }); });
           // List type dropdown (editable)
           let listKey = canonical(i.list_type || 'apt');
           const listSel = document.createElement('select');
@@ -2114,7 +2122,6 @@
             listSel.style.background = bc + '22'; listSel.style.color = bc; listSel.style.borderColor = bc + '66';
             saveTripItem(trip.id, i._iIdx, { list_type: listKey });
             buildPaidByPills(listKey);
-            setTimeout(() => openTrips(), 400);
           });
           // Delete button
           const delItem = document.createElement('button');
@@ -2212,7 +2219,7 @@
         const td = _tripData[trip.id]; td.items.push(newItem);
         await db.from('grocery_trips').update({ items: td.items }).eq('id', trip.id);
         addName.value = ''; addPrice.value = '';
-        setTimeout(() => openTrips(), 300);
+        openTrips(true);
       };
       addName.addEventListener('keydown', e => { if (e.key === 'Enter') addConfirm.click(); });
       addRow.append(addName, addSec, addList, addPrice, addConfirm);
@@ -2595,6 +2602,7 @@
     await db.from('grocery_trips').update({ items: updatedItems }).eq('id', _receiptTripId);
     closeReceiptModal();
     setStatus('Prices saved!');
+    _tripsCache = null;
     openTrips();
   };
 
