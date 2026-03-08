@@ -2312,10 +2312,9 @@
         const listKey = canonical((tripItem && tripItem.list_type) || 'apt');
         const badgeColor = LIST_BADGE_COLOR[listKey] || '#aaa';
         const badgeLabel = LIST_LABEL[listKey] || listKey;
-        const qtyLabel = m.qty && m.qty > 1 ? ` <span style="font-size:0.75rem;color:#4caf50;font-weight:600">×${m.qty}</span>` : '';
         html += `<div class="receipt-match-row" style="gap:4px">
           <input id="rn-${i}" type="text" value="${m.list_item.replace(/"/g,'&quot;')}" style="font-size:0.85rem;font-weight:500;border:1px solid #e0e0e0;border-radius:5px;padding:2px 5px;flex:0 1 auto;min-width:60px;max-width:140px" />
-          ${qtyLabel}
+          <span style="font-size:0.72rem;color:#aaa;flex-shrink:0">×</span><input id="rq-${i}" type="number" value="${m.qty||1}" min="1" step="1" style="width:32px;border:1px solid #e0e0e0;border-radius:5px;text-align:center;font-size:0.8rem;padding:2px 2px;flex-shrink:0" />
           <span style="font-size:0.65rem;padding:1px 5px;border-radius:8px;background:${badgeColor}22;color:${badgeColor};font-weight:600;flex-shrink:0">${badgeLabel}</span>
           <span style="font-size:0.72rem;color:#aaa;flex:1;padding:0 2px;overflow:hidden;white-space:nowrap">${m.receipt_name}</span>
           <input class="manual-price-input" id="rp-${i}" type="number" value="${m.price||''}" min="0" step="0.01" />
@@ -2323,8 +2322,13 @@
       });
     }
     // "On list, not found on receipt" — show BEFORE the unmatched receipt items
-    const matchedNames = new Set(matched.map(m => m.list_item));
-    const notOnReceipt = _receiptTripItems.filter(t => !matchedNames.has(t.item_name));
+    // Use counts so duplicates (e.g. 2× chicken on the bone) are handled correctly
+    const matchedCounts = {};
+    matched.forEach(m => { matchedCounts[m.list_item] = (matchedCounts[m.list_item] || 0) + 1; });
+    const notOnReceipt = _receiptTripItems.filter(t => {
+      if ((matchedCounts[t.item_name] || 0) > 0) { matchedCounts[t.item_name]--; return false; }
+      return true;
+    });
     if (notOnReceipt.length) {
       html += `<div class="receipt-section-title" style="color:#e67e22;margin-top:8px">❓ On your list, not on receipt — enter price if you bought it (${notOnReceipt.length})</div>`;
       notOnReceipt.forEach((t, i) => {
@@ -2342,10 +2346,12 @@
       html += `<div class="receipt-section-title receipt-unmatched" style="margin-top:8px">🧾 On receipt, not on your list — check to add (${unmatched.length})</div>`;
       const sectionOpts = SECTIONS.map(s => `<option value="${s}">${s}</option>`).join('');
       const listOpts = Object.entries(LIST_LABEL).map(([k,l]) => `<option value="${k}">${l}</option>`).join('');
+      const attachOpts = `<option value="">— add as new —</option>` + _receiptTripItems.map(t => `<option value="${t.item_name.replace(/"/g,'&quot;')}">${t.item_name}</option>`).join('');
       unmatched.forEach((u, i) => {
         html += `<div class="receipt-match-row" style="gap:4px;align-items:center">
           <input type="checkbox" id="add-u-${i}" style="flex-shrink:0;cursor:pointer;width:15px;height:15px" />
           <input id="uname-${i}" type="text" value="${(u.receipt_name||'').replace(/"/g,'&quot;')}" style="font-size:0.82rem;border:1px solid #e0e0e0;border-radius:5px;padding:2px 5px;flex:1;min-width:70px" />
+          <select id="uattach-${i}" style="font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:115px;background:white" title="Attach to existing item">${attachOpts}</select>
           <select id="usec-${i}" style="font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:80px;background:white">${sectionOpts}</select>
           <select id="ulist-${i}" style="font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:105px;background:white">${listOpts}</select>
           <span class="receipt-match-price">₪${parseFloat(u.price||0).toFixed(2)}</span>
@@ -2493,11 +2499,12 @@
         const ti = updatedItems.find(u => u.item_name === originalName);
         if (ti) {
           ti.price = price;
-          // If the user edited the name in the receipt modal, save that too
           const nameInput = document.getElementById(`rn-${i}`);
           if (nameInput && nameInput.value.trim() && nameInput.value.trim() !== originalName) {
             ti.item_name = nameInput.value.trim();
           }
+          const qtyInput = document.getElementById(`rq-${i}`);
+          if (qtyInput) ti.quantity = parseInt(qtyInput.value) || 1;
         }
       });
       if (_receiptMatches._unmatchedTrip) {
@@ -2516,9 +2523,20 @@
           const nameEl = document.getElementById(`uname-${i}`);
           const secEl = document.getElementById(`usec-${i}`);
           const listEl = document.getElementById(`ulist-${i}`);
-          const name = (nameEl ? nameEl.value.trim() : u.receipt_name) || u.receipt_name;
-          const section = secEl ? secEl.value : 'Other';
-          const list_type = listEl ? listEl.value : 'apt';
+          const attachEl = document.getElementById(`uattach-${i}`);
+          const attachTo = attachEl ? attachEl.value : '';
+          let name, section, list_type;
+          if (attachTo) {
+            // Attach to existing trip item — copy its name/section/list_type
+            const existing = (_tripData[_receiptTripId]?.items || []).find(t => t.item_name === attachTo);
+            name = attachTo;
+            section = existing?.section || 'Other';
+            list_type = existing?.list_type || 'apt';
+          } else {
+            name = (nameEl ? nameEl.value.trim() : u.receipt_name) || u.receipt_name;
+            section = secEl ? secEl.value : 'Other';
+            list_type = listEl ? listEl.value : 'apt';
+          }
           if (name) updatedItems.push({ item_name: name, section, list_type, price: parseFloat(u.price||0) || null, quantity: 1 });
         });
       }
