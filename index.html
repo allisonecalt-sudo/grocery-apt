@@ -1560,8 +1560,8 @@
   }
 
   function updateUndoRedo() {
-    document.getElementById('undoBtn').disabled = !history.length;
-    document.getElementById('redoBtn').disabled = !future.length;
+    const u = document.getElementById('undoBtn'); if (u) u.disabled = !history.length;
+    const r = document.getElementById('redoBtn'); if (r) r.disabled = !future.length;
   }
 
   // ========== TABS ==========
@@ -2100,8 +2100,11 @@
                 const newList = autoList[listKey]?.[opt];
                 if (newList && newList !== listKey) {
                   i.list_type = newList;
+                  listKey = newList;
+                  const nbc = LIST_BADGE_COLOR[newList] || '#aaa';
+                  listSel.value = newList; listSel.style.background = nbc+'22'; listSel.style.color = nbc; listSel.style.borderColor = nbc+'66';
                   await saveTripItem(trip.id, i._iIdx, { paid_by: opt, list_type: newList });
-                  openTrips();
+                  buildPaidByPills(newList);
                 } else {
                   await saveTripItem(trip.id, i._iIdx, { paid_by: opt });
                   paidByWrap.querySelectorAll('button').forEach((b, bi) => {
@@ -2541,21 +2544,24 @@
       });
     } else {
       // Receipt match mode: rp-0, rp-1, ...
+      const _usedMatchIdxs = new Set();
       _receiptMatches.forEach((m, i) => {
         const input = document.getElementById(`rp-${i}`);
         const price = input ? parseFloat(input.value) || null : null;
-        // AI mode: m.list_item. Manual mode: m.tripItem.item_name
         const originalName = m.list_item || (m.tripItem && m.tripItem.item_name);
-        const ti = updatedItems.find(u => u.item_name === originalName);
-        if (ti) {
-          ti.price = price;
-          const nameInput = document.getElementById(`rn-${i}`);
-          if (nameInput && nameInput.value.trim() && nameInput.value.trim() !== originalName) {
-            ti.item_name = nameInput.value.trim();
-          }
-          const qtyInput = document.getElementById(`rq-${i}`);
-          if (qtyInput) ti.quantity = parseInt(qtyInput.value) || 1;
+        // Find next unused trip item with this name (handles duplicates like two cottage cheeses)
+        let tiIdx = -1;
+        for (let j = 0; j < _receiptTripItems.length; j++) {
+          if (_receiptTripItems[j].item_name === originalName && !_usedMatchIdxs.has(j)) { tiIdx = j; break; }
         }
+        if (tiIdx < 0) return;
+        _usedMatchIdxs.add(tiIdx);
+        const ti = updatedItems[tiIdx];
+        ti.price = price;
+        const nameInput = document.getElementById(`rn-${i}`);
+        if (nameInput && nameInput.value.trim() && nameInput.value.trim() !== originalName) ti.item_name = nameInput.value.trim();
+        const qtyInput = document.getElementById(`rq-${i}`);
+        if (qtyInput) ti.quantity = parseInt(qtyInput.value) || 1;
       });
       if (_receiptMatches._unmatchedTrip) {
         _receiptMatches._unmatchedTrip.forEach((ti, i) => {
@@ -2592,10 +2598,11 @@
       }
       // Safety net: never drop items that exist in current trip state
       const currentItems = (_tripData[_receiptTripId] || {}).items || [];
-      currentItems.forEach(ci => {
-        if (ci.item_name && !updatedItems.some(u => u.item_name === ci.item_name)) {
-          updatedItems.push({ ...ci });
-        }
+      const usedSafetyIdxs = new Set(updatedItems.map((u, i) => i).filter(i => updatedItems[i]._safetyMatched));
+      currentItems.forEach((ci, ciIdx) => {
+        const alreadyIn = updatedItems.filter(u => u.item_name === ci.item_name).length;
+        const inCurrent = currentItems.filter(c => c.item_name === ci.item_name).length;
+        if (alreadyIn < inCurrent) updatedItems.push({ ...ci });
       });
     }
 
