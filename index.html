@@ -2360,7 +2360,7 @@
       html += `<div class="receipt-section-title receipt-unmatched" style="margin-top:8px">🧾 On receipt, not on your list — check to add (${unmatched.length})</div>`;
       const sectionOpts = SECTIONS.map(s => `<option value="${s}">${s}</option>`).join('');
       const listOpts = Object.entries(LIST_LABEL).map(([k,l]) => `<option value="${k}">${l}</option>`).join('');
-      const attachOpts = `<option value="">— add as new —</option>` + _receiptTripItems.map(t => `<option value="${t.item_name.replace(/"/g,'&quot;')}">${t.item_name}</option>`).join('');
+      const attachOpts = `<option value="">+ add as new item</option>` + _receiptTripItems.map(t => `<option value="${t.item_name.replace(/"/g,'&quot;')}">🔗 ${t.item_name}</option>`).join('');
       unmatched.forEach((u, i) => {
         html += `<div class="receipt-match-row" style="gap:4px;align-items:center">
           <input type="checkbox" id="add-u-${i}" style="flex-shrink:0;cursor:pointer;width:15px;height:15px" />
