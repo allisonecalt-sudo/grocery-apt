@@ -1994,7 +1994,7 @@
         if (!bySection[sec]) bySection[sec] = [];
         bySection[sec].push({ ...i, _iIdx: iIdx });
       });
-      SECTIONS.concat(['Other']).forEach(sec => {
+      SECTIONS.forEach(sec => {
         if (!bySection[sec]) return;
         const label = document.createElement('div');
         label.className = 'trip-section-label';
