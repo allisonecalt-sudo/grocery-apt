@@ -2066,12 +2066,26 @@
               pill.textContent = opt === 'joint' ? 'split' : opt;
               pill.style.cssText = `font-size:0.6rem;padding:1px 5px;border-radius:10px;cursor:pointer;border:1px solid ${isActive?bc:'#ddd'};background:${isActive?bc+'22':'white'};color:${isActive?bc:'#bbb'};font-weight:${isActive?'700':'400'};white-space:nowrap`;
               pill.addEventListener('click', () => {
-                i.paid_by = opt; saveTripItem(trip.id, i._iIdx, { paid_by: opt });
-                paidByWrap.querySelectorAll('button').forEach((b, bi) => {
-                  const active = opts[bi] === opt;
-                  b.style.border = `1px solid ${active?bc:'#ddd'}`; b.style.background = active?bc+'22':'white';
-                  b.style.color = active?bc:'#bbb'; b.style.fontWeight = active?'700':'400';
-                });
+                i.paid_by = opt;
+                // Auto-switch list_type: if "Avital" on a shared list → just avital (Allison bought FOR her)
+                const autoList = {
+                  allison_avital: { joint: 'allison_avital', Allison: 'allison', Avital: 'avital' },
+                  allison_ruthie: { joint: 'allison_ruthie', Allison: 'allison', Ruthie: 'ruthie' },
+                  ruthie_avital:  { joint: 'ruthie_avital', Ruthie: 'ruthie', Avital: 'avital' },
+                };
+                const newList = autoList[listKey]?.[opt];
+                if (newList && newList !== listKey) {
+                  i.list_type = newList;
+                  saveTripItem(trip.id, i._iIdx, { paid_by: opt, list_type: newList });
+                  setTimeout(() => openTrips(), 400);
+                } else {
+                  saveTripItem(trip.id, i._iIdx, { paid_by: opt });
+                  paidByWrap.querySelectorAll('button').forEach((b, bi) => {
+                    const active = opts[bi] === opt;
+                    b.style.border = `1px solid ${active?bc:'#ddd'}`; b.style.background = active?bc+'22':'white';
+                    b.style.color = active?bc:'#bbb'; b.style.fontWeight = active?'700':'400';
+                  });
+                }
               });
               paidByWrap.appendChild(pill);
             });
