@@ -2325,12 +2325,12 @@
         const listKey = canonical((tripItem && tripItem.list_type) || 'apt');
         const badgeColor = LIST_BADGE_COLOR[listKey] || '#aaa';
         const badgeLabel = LIST_LABEL[listKey] || listKey;
-        html += `<div class="receipt-match-row" style="gap:4px">
+        html += `<div class="receipt-match-row" style="gap:4px;flex-wrap:wrap;align-items:center">
           <input id="rn-${i}" type="text" value="${m.list_item.replace(/"/g,'&quot;')}" style="font-size:0.85rem;font-weight:500;border:1px solid #e0e0e0;border-radius:5px;padding:2px 5px;flex:0 1 auto;min-width:60px;max-width:140px" />
           <span style="font-size:0.72rem;color:#aaa;flex-shrink:0">×</span><input id="rq-${i}" type="number" value="${m.qty||1}" min="1" step="1" style="width:32px;border:1px solid #e0e0e0;border-radius:5px;text-align:center;font-size:0.8rem;padding:2px 2px;flex-shrink:0" />
           <span style="font-size:0.65rem;padding:1px 5px;border-radius:8px;background:${badgeColor}22;color:${badgeColor};font-weight:600;flex-shrink:0">${badgeLabel}</span>
-          <span style="font-size:0.72rem;color:#aaa;flex:1;padding:0 2px;overflow:hidden;white-space:nowrap">${m.receipt_name}</span>
           <input class="manual-price-input" id="rp-${i}" type="number" value="${m.price||''}" min="0" step="0.01" />
+          <div style="width:100%;font-size:0.72rem;color:#777;padding:0 4px 2px;direction:rtl;word-break:break-word">${m.receipt_name}</div>
         </div>`;
       });
     }
