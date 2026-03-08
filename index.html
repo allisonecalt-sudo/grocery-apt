@@ -2386,7 +2386,10 @@
       html += `<div class="receipt-section-title receipt-unmatched" style="margin-top:8px">🧾 On receipt, not on your list — check to add (${unmatched.length})</div>`;
       const sectionOpts = SECTIONS.map(s => `<option value="${s}">${s}</option>`).join('');
       const listOpts = Object.entries(LIST_LABEL).map(([k,l]) => `<option value="${k}">${l}</option>`).join('');
-      const attachOpts = `<option value="">+ add as new item</option>` + _receiptTripItems.map(t => `<option value="${t.item_name.replace(/"/g,'&quot;')}">🔗 ${t.item_name}</option>`).join('');
+      const attachOpts = `<option value="">+ add as new item</option>` + _receiptTripItems.map((t, ti) => {
+        const lbl = LIST_LABEL[canonical(t.list_type || 'apt')] || t.list_type || '';
+        return `<option value="${ti}">🔗 ${t.item_name} (${lbl})</option>`;
+      }).join('');
       unmatched.forEach((u, i) => {
         html += `<div class="receipt-match-row" style="gap:4px;align-items:center">
           <input type="checkbox" id="add-u-${i}" style="flex-shrink:0;cursor:pointer;width:15px;height:15px" />
@@ -2566,10 +2569,10 @@
           const attachEl = document.getElementById(`uattach-${i}`);
           const attachTo = attachEl ? attachEl.value : '';
           let name, section, list_type;
-          if (attachTo) {
-            // Attach to existing trip item — copy its name/section/list_type
-            const existing = (_tripData[_receiptTripId]?.items || []).find(t => t.item_name === attachTo);
-            name = attachTo;
+          if (attachTo !== '') {
+            // Attach to existing trip item by index — copy its name/section/list_type
+            const existing = _receiptTripItems[parseInt(attachTo)];
+            name = existing?.item_name || attachTo;
             section = existing?.section || 'Other';
             list_type = existing?.list_type || 'apt';
           } else {
