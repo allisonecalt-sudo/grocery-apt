@@ -72,47 +72,43 @@
     .section-card {
       background: white;
       border-radius: 16px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.04);
-      overflow: hidden;
-      border: 1px solid rgba(0,0,0,0.05);
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      overflow: visible;
     }
 
     .section-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 13px 16px;
+      padding: 14px 18px;
       cursor: pointer;
       user-select: none;
       font-weight: 700;
-      font-size: 0.97rem;
-      background: white;
-      transition: background 0.15s;
+      font-size: 1rem;
+      border-radius: 16px;
     }
-    .section-header:hover { background: #f7fdf9; }
-    .section-header .title { display: flex; align-items: center; gap: 9px; }
+    .section-header:hover { background: #f9fdf9; border-radius: 16px; }
+    .section-header .title { display: flex; align-items: center; gap: 8px; }
     .section-header .count {
-      background: #edf7f1; color: #2d6a4f;
-      border-radius: 20px; padding: 2px 9px;
-      font-size: 0.75rem; font-weight: 700;
+      background: #e8f5e9; color: #2d6a4f;
+      border-radius: 20px; padding: 2px 10px;
+      font-size: 0.78rem; font-weight: 600;
     }
-    .chevron { font-size: 0.75rem; color: #bbb; transition: transform 0.2s; }
+    .chevron { font-size: 0.8rem; transition: transform 0.2s; }
     .chevron.open { transform: rotate(180deg); }
 
-    .section-body { padding: 0 16px 14px; }
+    .section-body { padding: 0 18px 14px; }
     .section-body.collapsed { display: none; }
 
     /* === SECTION GROUP HEADER inside list === */
     .group-header {
-      font-size: 0.65rem;
-      font-weight: 800;
+      font-size: 0.72rem;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #c5c5c5;
-      padding: 10px 0 3px;
-      border-bottom: 1px solid #f5f5f5;
-      margin-bottom: 2px;
+      letter-spacing: 0.05em;
+      color: #aaa;
+      padding: 10px 0 4px;
     }
 
     /* === ITEMS === */
@@ -122,42 +118,39 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 9px 0;
-      border-bottom: 1px solid #f4f4f4;
-      animation: fadeIn 0.18s ease;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      animation: fadeIn 0.2s ease;
     }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
     .item-row:last-child { border-bottom: none; }
 
     .item-check {
-      width: 22px; height: 22px;
+      width: 20px; height: 20px;
       border-radius: 50%;
-      border: 2px solid #d0ddd0;
+      border: 2px solid #b0c4b0;
       cursor: pointer;
       flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      transition: all 0.18s;
+      transition: all 0.2s;
     }
-    .item-check:hover { border-color: #52b788; }
     .item-check.checked { background: #52b788; border-color: #52b788; }
     .item-check.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: bold; }
 
     .item-info { flex: 1; min-width: 0; }
     .item-name {
       font-size: 0.93rem;
-      font-weight: 500;
-      color: #2c2c2c;
       transition: all 0.2s;
       display: block;
     }
-    .item-name.checked { text-decoration: line-through; color: #c0c0c0; font-weight: 400; }
-    .item-added-by { font-size: 0.68rem; color: #ccc; margin-top: 1px; }
+    .item-name.checked { text-decoration: line-through; color: #aaa; }
+    .item-added-by { font-size: 0.7rem; color: #bbb; }
     .item-qty {
-      font-size: 0.75rem;
-      background: #edf7f1;
-      color: #40916c;
-      border-radius: 8px;
-      padding: 2px 8px;
+      font-size: 0.78rem;
+      background: #e8f5e9;
+      color: #2d6a4f;
+      border-radius: 6px;
+      padding: 1px 7px;
       font-weight: 700;
       white-space: nowrap;
       flex-shrink: 0;
@@ -246,16 +239,14 @@
     .add-btn:hover { background: #40916c; }
 
     .clear-btn {
-      margin-top: 10px;
-      padding: 7px 14px;
-      background: #fff5f5; color: #c0605a;
-      border: 1px solid #f5d5d3;
-      border-radius: 10px;
+      margin-top: 8px;
+      padding: 6px 12px;
+      background: #fff0f0; color: #c0605a;
+      border: 1px solid #f0c0be;
+      border-radius: 8px;
       font-size: 0.8rem;
-      font-weight: 600;
       cursor: pointer;
       transition: background 0.2s;
-      display: inline-flex; align-items: center; gap: 5px;
     }
     .clear-btn:hover { background: #ffe0de; }
 
@@ -330,19 +321,9 @@
       transition: color 0.2s; flex-shrink: 0;
     }
     .trip-delete-btn:hover { color: #e74c3c; }
-    .trip-breakdown {
-      margin: 12px 0 6px; padding: 10px 14px;
-      background: linear-gradient(135deg, #f8fdf9, #f0f8f4);
-      border-radius: 12px; border: 1px solid #e0ede6;
-      font-size: 0.82rem; color: #555;
-    }
-    .trip-breakdown-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 3px 0; border-bottom: 1px solid rgba(0,0,0,0.04);
-    }
-    .trip-breakdown-row:last-child { border-bottom: none; }
-    .trip-breakdown-row strong { color: #2d6a4f; font-weight: 600; }
-    .trip-breakdown-amt { font-weight: 700; color: #333; font-size: 0.88rem; }
+    .trip-breakdown { margin: 10px 0 4px; padding: 8px 12px; background: #f8f8f8; border-radius: 10px; font-size: 0.82rem; color: #555; }
+    .trip-breakdown-row { display: flex; justify-content: space-between; padding: 2px 0; }
+    .trip-breakdown-row strong { color: #333; }
     .edit-modal-bg {
       display: none;
       position: fixed;
@@ -524,53 +505,40 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
     .trips-header h2 { font-size: 1.1rem; }
-    .trips-body { padding: 16px; max-width: 620px; margin: 0 auto; }
+    .trips-body { padding: 16px; max-width: 600px; margin: 0 auto; }
     .trip-card {
       background: white;
-      border-radius: 16px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 3px 12px rgba(0,0,0,0.04);
+      border-radius: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
       overflow: hidden;
-      border: 1px solid rgba(0,0,0,0.05);
     }
     .trip-card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 13px 16px;
+      padding: 12px 16px;
       cursor: pointer;
       font-weight: 700;
       color: #2d6a4f;
-      background: white;
-      transition: background 0.15s;
     }
-    .trip-card-header:hover { background: #f7fdf9; }
-    .trip-date-label { font-size: 0.95rem; letter-spacing: -0.01em; }
-    .trip-meta { font-size: 0.77rem; color: #bbb; font-weight: 400; margin-top: 1px; }
-    .trip-items-body { padding: 0 14px 14px; display: none; }
+    .trip-card-header:hover { background: #f9fdf9; }
+    .trip-date-label { font-size: 0.95rem; }
+    .trip-meta { font-size: 0.78rem; color: #aaa; font-weight: 400; }
+    .trip-items-body { padding: 0 16px 12px; display: none; }
     .trip-items-body.open { display: block; }
     .trip-section-label {
-      font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
-      letter-spacing: 0.08em; color: #bbb; padding: 12px 0 4px;
-      border-bottom: 1px solid #f0f0f0; margin-bottom: 2px;
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #aaa; padding: 8px 0 3px;
     }
     .trip-item-line {
-      display: flex; flex-direction: column;
-      padding: 7px 0; border-bottom: 1px solid #f5f5f5;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.9rem; padding: 6px 0;
+      border-bottom: 1px solid #f5f5f5; color: #444;
     }
     .trip-item-line:last-child { border-bottom: none; }
-    .trip-item-top { display: flex; align-items: center; gap: 8px; }
-    .trip-item-controls {
-      display: flex; align-items: center; gap: 5px;
-      padding-left: 26px; margin-top: 4px; flex-wrap: wrap;
-    }
     .trip-item-cb { width: 18px; height: 18px; accent-color: #52b788; cursor: pointer; flex-shrink: 0; }
-    .trip-item-name {
-      flex: 1; border: none; background: transparent;
-      font-size: 0.9rem; padding: 2px 4px; min-width: 0;
-      border-radius: 4px; cursor: text; color: #2c2c2c; font-weight: 500;
-    }
-    .trip-item-name:focus { background: #f5f5f5; outline: none; }
+    .trip-item-name { flex: 1; }
     .trip-add-footer {
       margin-top: 12px; padding-top: 10px;
       border-top: 2px solid #f0f0f0;
@@ -754,13 +722,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <body>
 
-<!-- Loading overlay for receipt AI -->
-<div id="loading-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
-  <div style="width:56px; height:56px; border:5px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.9s linear infinite;"></div>
-  <div id="loading-overlay-text" style="color:white; font-size:18px; font-weight:600; text-align:center; white-space:pre-line; line-height:1.6;"></div>
-</div>
-<style>@keyframes spin { to { transform: rotate(360deg); } }</style>
-
 <header>
   <div class="header-row1">
     <h1>🛒 Apt Grocery</h1>
@@ -799,7 +760,7 @@
           <div class="autocomplete-list" id="apt-ac" style="display:none"></div>
         </div>
         <input class="qty-input" id="apt-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="apt-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="apt-sec"><option value="">Section (optional)</option></select>
         <button class="add-btn" onclick="addItem('apt')">+ Add</button>
       </div></div>
     </div>
@@ -829,7 +790,7 @@
             <div class="autocomplete-list" id="allison-ac" style="display:none"></div>
           </div>
           <input class="qty-input" id="allison-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="allison-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="allison-sec"><option value="">Section (optional)</option></select>
           <button class="add-btn" onclick="addItem('allison')">+ Add</button>
         </div></div>
       </div>
@@ -849,7 +810,7 @@
             <div class="autocomplete-list" id="allison_ruthie-ac" style="display:none"></div>
           </div>
           <input class="qty-input" id="allison_ruthie-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="allison_ruthie-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="allison_ruthie-sec"><option value="">Section (optional)</option></select>
           <button class="add-btn" onclick="addItem('allison_ruthie')">+ Add</button>
         </div></div>
       </div>
@@ -869,7 +830,7 @@
             <div class="autocomplete-list" id="allison_avital-ac" style="display:none"></div>
           </div>
           <input class="qty-input" id="allison_avital-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="allison_avital-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="allison_avital-sec"><option value="">Section (optional)</option></select>
           <button class="add-btn" onclick="addItem('allison_avital')">+ Add</button>
         </div></div>
       </div>
@@ -892,7 +853,7 @@
             <div class="autocomplete-list" id="allison_nutritionist-ac" style="display:none"></div>
           </div>
           <input class="qty-input" id="allison_nutritionist-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="allison_nutritionist-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="allison_nutritionist-sec"><option value="">Section (optional)</option></select>
           <button class="add-btn" onclick="addItem('allison_nutritionist')">+ Add</button>
         </div></div>
       </div>
@@ -916,7 +877,7 @@
             <div class="autocomplete-list" id="ruthie-ac" style="display:none"></div>
           </div>
           <input class="qty-input" id="ruthie-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="ruthie-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="ruthie-sec"><option value="">Section (optional)</option></select>
           <button class="add-btn" onclick="addItem('ruthie')">+ Add</button>
         </div></div>
       </div>
@@ -936,7 +897,7 @@
             <div class="autocomplete-list" id="ruthie_allison-ac" style="display:none"></div>
           </div>
           <input class="qty-input" id="ruthie_allison-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="ruthie_allison-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="ruthie_allison-sec"><option value="">Section (optional)</option></select>
           <button class="add-btn" onclick="addItem('ruthie_allison')">+ Add</button>
         </div></div>
       </div>
@@ -956,7 +917,7 @@
             <div class="autocomplete-list" id="ruthie_avital-ac" style="display:none"></div>
           </div>
           <input class="qty-input" id="ruthie_avital-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="ruthie_avital-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="ruthie_avital-sec"><option value="">Section (optional)</option></select>
           <button class="add-btn" onclick="addItem('ruthie_avital')">+ Add</button>
         </div></div>
       </div>
@@ -980,7 +941,7 @@
             <div class="autocomplete-list" id="avital-ac" style="display:none"></div>
           </div>
           <input class="qty-input" id="avital-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="avital-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="avital-sec"><option value="">Section (optional)</option></select>
           <button class="add-btn" onclick="addItem('avital')">+ Add</button>
         </div></div>
       </div>
@@ -1000,7 +961,7 @@
             <div class="autocomplete-list" id="avital_allison-ac" style="display:none"></div>
           </div>
           <input class="qty-input" id="avital_allison-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="avital_allison-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="avital_allison-sec"><option value="">Section (optional)</option></select>
           <button class="add-btn" onclick="addItem('avital_allison')">+ Add</button>
         </div></div>
       </div>
@@ -1020,7 +981,7 @@
             <div class="autocomplete-list" id="avital_ruthie-ac" style="display:none"></div>
           </div>
           <input class="qty-input" id="avital_ruthie-qty" type="number" min="1" max="99" value="1" title="Quantity" />
-          <select class="section-select" id="avital_ruthie-sec"><option value="">Section...</option></select>
+          <select class="section-select" id="avital_ruthie-sec"><option value="">Section (optional)</option></select>
           <button class="add-btn" onclick="addItem('avital_ruthie')">+ Add</button>
         </div></div>
       </div>
@@ -1194,7 +1155,7 @@
 
   function populateSectionDropdowns() {
     document.querySelectorAll('.section-select').forEach(sel => {
-      sel.innerHTML = '<option value="">Section...</option>';
+      sel.innerHTML = '<option value="">Section (optional)</option>';
       SECTIONS.forEach(s => {
         const o = document.createElement('option');
         o.value = o.textContent = s;
@@ -1406,60 +1367,52 @@
     const section = sec.value;
     const quantity = parseInt(qtyEl?.value) || 1;
     if (!name) return;
-    if (!section) { setStatus('Please select a section'); return; }
+    if (!section) { sec.value = 'Other'; }
+    const finalSection = sec.value || 'Other';
     document.getElementById(`${key}-ac`).style.display = 'none';
-
-    // Optimistic: show item immediately with temp ID, replace once DB responds
-    const tempId = 'temp-' + Date.now();
-    const tempItem = { id: tempId, item_name: name, section, list_type: canonKey, checked: false, added_by: currentUser || '', quantity, paid_by: 'joint' };
-    if (!items[canonKey]) items[canonKey] = [];
-    items[canonKey].push(tempItem);
-    renderAll();
-    input.value = ''; sec.value = ''; if (qtyEl) qtyEl.value = 1;
-    setStatus(`Added "${name}"`);
 
     const lower = name.toLowerCase();
     if (!catalog[lower]) {
-      db.from('grocery_catalog').insert({ name: lower, section }).select().single()
-        .then(({ data: catRow }) => { if (catRow) catalog[lower] = { section, id: catRow.id }; });
+      const { data: catRow } = await db.from('grocery_catalog').insert({ name: lower, section: finalSection }).select().single();
+      if (catRow) catalog[lower] = { section: finalSection, id: catRow.id };
     }
 
     const { data: newItem } = await db.from('grocery_items').insert({
-      list_type: canonKey, item_name: name, section, checked: false,
+      list_type: canonKey, item_name: name, section: finalSection, checked: false,
       added_by: currentUser || '', quantity
     }).select().single();
 
     if (newItem) {
-      const idx = (items[canonKey] || []).findIndex(i => i.id === tempId);
-      if (idx >= 0) items[canonKey][idx] = newItem;
-      else { items[canonKey] = (items[canonKey] || []).filter(i => i.id !== tempId); items[canonKey].push(newItem); }
+      if (!items[canonKey]) items[canonKey] = [];
+      items[canonKey].push(newItem);
       pushHistory({ type: 'add', item: newItem, canonKey });
       renderAll();
+      input.value = ''; sec.value = ''; if (qtyEl) qtyEl.value = 1;
+      setStatus(`Added "${name}" x${quantity}`);
     }
   };
 
   // ========== CHECK ==========
   async function toggleCheck(item, displayKey) {
     const newVal = !item.checked;
+    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
     const canonKey = canonical(displayKey);
     const stored = (items[canonKey] || []).find(i => i.id === item.id);
-    // Optimistic update — render immediately, save in background
-    if (stored) { stored.checked = newVal; }
-    item.checked = newVal;
+    if (stored) {
+      pushHistory({ type: newVal ? 'check' : 'uncheck', item: { ...stored }, canonKey });
+      stored.checked = newVal;
+    }
     renderAll();
-    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
-    if (stored) pushHistory({ type: newVal ? 'check' : 'uncheck', item: { ...stored, checked: !newVal }, canonKey });
   }
 
   // ========== DELETE ==========
   async function deleteItem(item, displayKey) {
     const canonKey = canonical(displayKey);
-    // Optimistic update — remove from view immediately, save in background
+    await db.from('grocery_items').delete().eq('id', item.id);
     items[canonKey] = (items[canonKey] || []).filter(i => i.id !== item.id);
+    pushHistory({ type: 'delete', item, canonKey });
     renderAll();
     setStatus(`Removed "${item.item_name}"`);
-    await db.from('grocery_items').delete().eq('id', item.id);
-    pushHistory({ type: 'delete', item, canonKey });
   }
 
   // ========== CLEAR CHECKED ==========
@@ -1592,8 +1545,8 @@
   }
 
   function updateUndoRedo() {
-    const u = document.getElementById('undoBtn'); if (u) u.disabled = !history.length;
-    const r = document.getElementById('redoBtn'); if (r) r.disabled = !future.length;
+    document.getElementById('undoBtn').disabled = !history.length;
+    document.getElementById('redoBtn').disabled = !future.length;
   }
 
   // ========== TABS ==========
@@ -1611,19 +1564,10 @@
     document.getElementById(chevId).classList.toggle('open');
   };
 
-  function setStatus(msg, persistent) {
+  function setStatus(msg) {
     const bar = document.getElementById('status-bar');
     bar.textContent = msg;
-    if (!persistent) setTimeout(() => bar.textContent = '', 3000);
-  }
-
-  function showLoadingOverlay(msg) {
-    document.getElementById('loading-overlay-text').textContent = msg || 'Loading...';
-    document.getElementById('loading-overlay').style.display = 'flex';
-  }
-
-  function hideLoadingOverlay() {
-    document.getElementById('loading-overlay').style.display = 'none';
+    setTimeout(() => bar.textContent = '', 3000);
   }
 
   // ========== SHOPPING MODE ==========
@@ -1903,11 +1847,11 @@
     setStatus(`Added ${toAdd.length} nutritionist item(s) to your shopping list`);
   };
 
-  window.setPaidBy = function(item, listKey, value, btnEl) {
+  window.setPaidBy = async function(item, listKey, value, btnEl) {
     item.paid_by = value;
     btnEl.closest('.paid-by-pills').querySelectorAll('.paid-by-pill').forEach(b => b.classList.remove('active'));
     btnEl.classList.add('active');
-    db.from('grocery_items').update({ paid_by: value }).eq('id', item.id); // fire and forget
+    await db.from('grocery_items').update({ paid_by: value }).eq('id', item.id);
   };
 
   window.shopClearChecked = async function() {
@@ -1915,15 +1859,7 @@
     const allChecked = [];
     for (const listKey of lists) {
       (items[listKey] || []).filter(i => i.checked).forEach(i => {
-        // If paid_by is already "Avital"/"Allison" etc on a shared list, resolve to that person's individual list
-        const paidBy = i.paid_by || 'joint';
-        const _autoList = {
-          allison_avital: { joint: 'allison_avital', Allison: 'allison', Avital: 'avital' },
-          allison_ruthie: { joint: 'allison_ruthie', Allison: 'allison', Ruthie: 'ruthie' },
-          ruthie_avital:  { joint: 'ruthie_avital', Ruthie: 'ruthie', Avital: 'avital' },
-        };
-        const resolvedList = _autoList[canonical(i.list_type)]?.[paidBy] || i.list_type;
-        allChecked.push({ item_name: i.item_name, section: i.section, list_type: resolvedList, quantity: i.quantity || 1, paid_by: paidBy });
+        allChecked.push({ item_name: i.item_name, section: i.section, list_type: i.list_type, quantity: i.quantity || 1, paid_by: i.paid_by || 'joint' });
       });
     }
     if (!allChecked.length) return;
@@ -1954,28 +1890,20 @@
     avital: '#e67e22', allison_ruthie: '#1abc9c', allison_avital: '#e74c3c', ruthie_avital: '#f39c12'
   };
 
-  let _tripsCache = null;
-
-  window.openTrips = async function(soft = false) {
+  window.openTrips = async function() {
     document.getElementById('trips-overlay').classList.add('active');
     const body = document.getElementById('trips-body');
-    if (!soft || !_tripsCache) body.innerHTML = '<div class="trips-empty">Loading...</div>';
+    body.innerHTML = '<div class="trips-empty">Loading...</div>';
 
-    let trips;
-    if (soft && _tripsCache) {
-      trips = _tripsCache;
-    } else {
-      const { data, error } = await db
-        .from('grocery_trips')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (error || !data || !data.length) {
-        body.innerHTML = '<div class="trips-empty">No trips logged yet. Clear checked items after shopping to save a trip.</div>';
-        return;
-      }
-      trips = data;
-      _tripsCache = trips;
+    const { data: trips, error } = await db
+      .from('grocery_trips')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (error || !trips || !trips.length) {
+      body.innerHTML = '<div class="trips-empty">No trips logged yet. Clear checked items after shopping to save a trip.</div>';
+      return;
     }
 
     body.innerHTML = '';
@@ -2019,26 +1947,12 @@
       manualBtn.textContent = '✏ Manual';
       manualBtn.onclick = (e) => { e.stopPropagation(); openManualReceipt(trip.id); };
 
-      const resetBtn = document.createElement('button');
-      resetBtn.className = 'receipt-upload-btn';
-      resetBtn.style.cssText = 'border-color:#e74c3c;color:#e74c3c;font-size:0.72rem';
-      resetBtn.textContent = '↺ ₪';
-      resetBtn.title = 'Clear all prices';
-      resetBtn.onclick = async (e) => {
-        e.stopPropagation();
-        if (!confirm('Clear all prices for this trip?')) return;
-        const td = _tripData[trip.id];
-        td.items = td.items.map(i => ({ ...i, price: null }));
-        await db.from('grocery_trips').update({ items: td.items }).eq('id', trip.id);
-        openTrips();
-      };
-
       const delBtn = document.createElement('button');
       delBtn.className = 'trip-delete-btn';
       delBtn.textContent = '🗑';
       delBtn.onclick = (e) => { e.stopPropagation(); deleteTrip(trip.id, card); };
 
-      header.append(titleArea, receiptBtn, manualBtn, resetBtn, delBtn);
+      header.append(titleArea, receiptBtn, manualBtn, delBtn);
 
       const tripBody = document.createElement('div');
       tripBody.className = 'trip-items-body';
@@ -2051,7 +1965,7 @@
         if (!bySection[sec]) bySection[sec] = [];
         bySection[sec].push({ ...i, _iIdx: iIdx });
       });
-      SECTIONS.forEach(sec => {
+      SECTIONS.concat(['Other']).forEach(sec => {
         if (!bySection[sec]) return;
         const label = document.createElement('div');
         label.className = 'trip-section-label';
@@ -2064,137 +1978,28 @@
           cb.type = 'checkbox'; cb.checked = true;
           cb.className = 'trip-item-cb';
           cb.id = `trip-cb-${idx}-${i._iIdx}`;
-          // Name — editable
-          const nameInput = document.createElement('input');
-          nameInput.type = 'text';
-          nameInput.value = i.item_name;
-          nameInput.style.cssText = 'flex:1;border:none;background:transparent;font-size:0.9rem;padding:2px 4px;min-width:0;border-radius:4px;cursor:text';
-          nameInput.addEventListener('focus', () => nameInput.style.background = '#f5f5f5');
-          nameInput.addEventListener('blur', () => {
-            nameInput.style.background = 'transparent';
-            const v = nameInput.value.trim();
-            if (v && v !== i.item_name) { i.item_name = v; saveTripItem(trip.id, i._iIdx, { item_name: v }); }
-          });
-          // Qty — editable
-          const qtyWrap = document.createElement('span');
-          qtyWrap.style.cssText = 'display:flex;align-items:center;gap:1px;flex-shrink:0;color:#888;font-size:0.75rem';
-          qtyWrap.textContent = '×';
-          const qtyInput = document.createElement('input');
-          qtyInput.type = 'number'; qtyInput.min = '1'; qtyInput.max = '99';
-          qtyInput.value = i.quantity || 1;
-          qtyInput.style.cssText = 'width:32px;border:1px solid #e0e0e0;border-radius:4px;text-align:center;font-size:0.78rem;padding:1px 2px;color:#555';
-          qtyInput.addEventListener('change', () => { const q = parseInt(qtyInput.value) || 1; i.quantity = q; saveTripItem(trip.id, i._iIdx, { quantity: q }); });
-          qtyWrap.appendChild(qtyInput);
-          // Section dropdown
-          const secSel = document.createElement('select');
-          secSel.style.cssText = 'font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:90px;flex-shrink:0;background:white';
-          SECTIONS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; if (s === i.section) o.selected = true; secSel.appendChild(o); });
-          secSel.addEventListener('change', () => { i.section = secSel.value; saveTripItem(trip.id, i._iIdx, { section: secSel.value }); });
-          // List type dropdown (editable)
-          let listKey = canonical(i.list_type || 'apt');
-          const listSel = document.createElement('select');
-          listSel.style.cssText = `font-size:0.65rem;padding:1px 4px;border-radius:8px;background:${LIST_BADGE_COLOR[listKey]||'#aaa'}22;color:${LIST_BADGE_COLOR[listKey]||'#aaa'};font-weight:600;flex-shrink:0;border:1px solid ${LIST_BADGE_COLOR[listKey]||'#aaa'}66;cursor:pointer`;
-          Object.entries(LIST_LABEL).forEach(([k, l]) => { const o = document.createElement('option'); o.value = k; o.textContent = l; if (k === listKey) o.selected = true; listSel.appendChild(o); });
-          // Price — editable
-          const priceInput = document.createElement('input');
-          priceInput.type = 'number'; priceInput.min = '0'; priceInput.step = '0.01';
-          priceInput.value = i.price || ''; priceInput.placeholder = '₪';
-          const missingPrice = !i.price;
-          priceInput.style.cssText = `width:52px;border:1px solid ${missingPrice?'#e74c3c':'#e0e0e0'};border-radius:5px;text-align:right;font-size:0.8rem;color:${missingPrice?'#e74c3c':'#2d6a4f'};font-weight:600;padding:2px 4px;flex-shrink:0`;
-          if (missingPrice) priceInput.title = 'Missing price';
-          priceInput.addEventListener('change', () => {
-            const p = parseFloat(priceInput.value) || null;
-            i.price = p; saveTripItem(trip.id, i._iIdx, { price: p });
-            priceInput.style.border = p ? '1px solid #e0e0e0' : '1px solid #e74c3c';
-            priceInput.style.color = p ? '#2d6a4f' : '#e74c3c';
-          });
-          // Paid-by pills container (rebuilt when list changes)
-          const paidByWrap = document.createElement('div');
-          paidByWrap.style.cssText = 'display:flex;gap:2px;flex-shrink:0;align-items:center';
-          function buildPaidByPills(lk) {
-            paidByWrap.innerHTML = '';
-            const opts = PAID_BY_OPTIONS[lk];
-            if (!opts) return;
-            const bc = LIST_BADGE_COLOR[lk] || '#aaa';
-            opts.forEach(opt => {
-              const pill = document.createElement('button');
-              const current = i.paid_by || 'joint';
-              const isActive = current === opt;
-              pill.textContent = opt === 'joint' ? 'split' : opt;
-              pill.style.cssText = `font-size:0.68rem;padding:2px 7px;border-radius:10px;cursor:pointer;border:1px solid ${isActive?bc+'88':'#eee'};background:${isActive?bc+'18':'white'};color:${isActive?bc:'#ccc'};font-weight:${isActive?'700':'500'};white-space:nowrap;transition:all 0.15s`;
-              pill.addEventListener('click', async () => {
-                i.paid_by = opt;
-                const autoList = {
-                  allison_avital: { joint: 'allison_avital', Allison: 'allison', Avital: 'avital' },
-                  allison_ruthie: { joint: 'allison_ruthie', Allison: 'allison', Ruthie: 'ruthie' },
-                  ruthie_avital:  { joint: 'ruthie_avital', Ruthie: 'ruthie', Avital: 'avital' },
-                };
-                const newList = autoList[listKey]?.[opt];
-                if (newList && newList !== listKey) {
-                  i.list_type = newList;
-                  listKey = newList;
-                  const nbc = LIST_BADGE_COLOR[newList] || '#aaa';
-                  listSel.value = newList; listSel.style.background = nbc+'18'; listSel.style.color = nbc; listSel.style.borderColor = nbc+'44';
-                  await saveTripItem(trip.id, i._iIdx, { paid_by: opt, list_type: newList });
-                  buildPaidByPills(newList);
-                } else {
-                  await saveTripItem(trip.id, i._iIdx, { paid_by: opt });
-                  paidByWrap.querySelectorAll('button').forEach((b, bi) => {
-                    const active = opts[bi] === opt;
-                    b.style.border = `1px solid ${active?bc+'88':'#eee'}`; b.style.background = active?bc+'18':'white';
-                    b.style.color = active?bc:'#ccc'; b.style.fontWeight = active?'700':'500';
-                  });
-                }
-              });
-              paidByWrap.appendChild(pill);
-            });
-          }
-          buildPaidByPills(listKey);
-          listSel.addEventListener('change', () => {
-            listKey = listSel.value;
-            i.list_type = listKey;
-            const bc = LIST_BADGE_COLOR[listKey] || '#aaa';
-            listSel.style.background = bc + '18'; listSel.style.color = bc; listSel.style.borderColor = bc + '44';
-            saveTripItem(trip.id, i._iIdx, { list_type: listKey });
-            buildPaidByPills(listKey);
-          });
-          // Delete button
-          const delItem = document.createElement('button');
-          delItem.textContent = '×'; delItem.title = 'Remove item';
-          delItem.style.cssText = 'border:none;background:none;color:#ccc;font-size:1.1rem;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1';
-          delItem.addEventListener('click', () => { const td = _tripData[trip.id]; td.items.splice(i._iIdx, 1); db.from('grocery_trips').update({ items: td.items }).eq('id', trip.id); line.remove(); });
-          // Top row: checkbox + full name + price + delete
-          const topRow = document.createElement('div');
-          topRow.className = 'trip-item-top';
-          nameInput.style.cssText = 'flex:1;border:none;background:transparent;font-size:0.92rem;font-weight:500;padding:2px 4px;min-width:0;border-radius:4px;cursor:text;color:#2c2c2c';
-          priceInput.style.cssText = `width:60px;border:1px solid ${missingPrice?'#f0b8b8':'#e8e8e8'};border-radius:8px;text-align:right;font-size:0.85rem;color:${missingPrice?'#e74c3c':'#2d6a4f'};font-weight:700;padding:3px 6px;flex-shrink:0;background:${missingPrice?'#fff8f8':'white'}`;
-          delItem.style.cssText = 'border:none;background:none;color:#ddd;font-size:1.2rem;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;transition:color 0.15s';
-          topRow.append(cb, nameInput, priceInput, delItem);
-          // Controls row: qty, section, list, paid_by
-          const ctrlRow = document.createElement('div');
-          ctrlRow.className = 'trip-item-controls';
-          qtyWrap.style.cssText = 'display:flex;align-items:center;gap:2px;flex-shrink:0;color:#ccc;font-size:0.72rem;font-weight:600';
-          qtyInput.style.cssText = 'width:30px;border:1px solid #eee;border-radius:5px;text-align:center;font-size:0.78rem;padding:1px 2px;color:#666;background:#fafafa';
-          secSel.style.cssText = 'font-size:0.72rem;border:1px solid #eee;border-radius:7px;padding:2px 4px;color:#999;flex-shrink:0;background:#fafafa;max-width:95px';
-          listSel.style.cssText = `font-size:0.72rem;padding:2px 6px;border-radius:10px;background:${LIST_BADGE_COLOR[listKey]||'#aaa'}18;color:${LIST_BADGE_COLOR[listKey]||'#aaa'};font-weight:700;flex-shrink:0;border:1px solid ${LIST_BADGE_COLOR[listKey]||'#aaa'}44;cursor:pointer`;
-          paidByWrap.style.cssText = 'display:flex;gap:3px;flex-shrink:0;align-items:center;margin-left:2px';
-          ctrlRow.append(qtyWrap, secSel, listSel, paidByWrap);
-          line.append(topRow, ctrlRow);
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'trip-item-name';
+          nameSpan.style.flex = '1';
+          nameSpan.textContent = i.quantity > 1 ? `${i.item_name} ×${i.quantity}` : i.item_name;
+          // List badge
+          const listKey = canonical(i.list_type || 'apt');
+          const badge = document.createElement('span');
+          badge.style.cssText = `font-size:0.65rem;padding:1px 6px;border-radius:8px;background:${LIST_BADGE_COLOR[listKey]||'#aaa'}22;color:${LIST_BADGE_COLOR[listKey]||'#aaa'};font-weight:600;flex-shrink:0`;
+          badge.textContent = LIST_LABEL[listKey] || listKey;
+          // Price
+          const priceSpan = document.createElement('span');
+          priceSpan.style.cssText = 'font-size:0.8rem;color:#2d6a4f;font-weight:600;min-width:42px;text-align:right;flex-shrink:0';
+          priceSpan.textContent = i.price ? `₪${parseFloat(i.price).toFixed(2)}` : '';
+          line.append(cb, nameSpan, badge, priceSpan);
           tripBody.appendChild(line);
         });
       });
 
-      // Breakdown by list — sub-divide shared lists by paid_by
-      const _bdAutoList = {
-        allison_avital: { joint: 'allison_avital', Allison: 'allison', Avital: 'avital' },
-        allison_ruthie: { joint: 'allison_ruthie', Allison: 'allison', Ruthie: 'ruthie' },
-        ruthie_avital:  { joint: 'ruthie_avital', Ruthie: 'ruthie', Avital: 'avital' },
-      };
+      // Breakdown by list
       const breakdown = {};
       tripItems.forEach(i => {
-        const listType = canonical(i.list_type || 'apt');
-        const paidBy = i.paid_by || 'joint';
-        const key = _bdAutoList[listType]?.[paidBy] || listType;
+        const key = canonical(i.list_type || 'apt');
         if (!breakdown[key]) breakdown[key] = { count: 0, total: 0 };
         breakdown[key].count++;
         if (i.price) breakdown[key].total += parseFloat(i.price);
@@ -2231,48 +2036,6 @@
       addBtn.onclick = () => addTripItems(idx, tripItems.length);
       footer.append(picker, addBtn);
       tripBody.appendChild(footer);
-
-      // Add new item to this trip
-      const addRow = document.createElement('div');
-      addRow.style.cssText = 'display:flex;gap:6px;padding:8px 12px;border-top:1px solid #f0f0f0;flex-wrap:wrap;align-items:center';
-      // Build lookup map from all items in all lists
-      const allListItems = Object.values(items).flat();
-      const dlId = `trip-add-dl-${idx}`;
-      const dl = document.createElement('datalist'); dl.id = dlId;
-      allListItems.forEach(it => { const o = document.createElement('option'); o.value = it.item_name; dl.appendChild(o); });
-      addRow.appendChild(dl);
-      const addName = document.createElement('input');
-      addName.type = 'text'; addName.placeholder = 'Add item to trip...';
-      addName.setAttribute('list', dlId);
-      addName.style.cssText = 'flex:1;min-width:100px;border:1px solid #ddd;border-radius:6px;padding:4px 8px;font-size:0.85rem';
-      const addSec = document.createElement('select');
-      addSec.style.cssText = 'font-size:0.75rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;color:#555;max-width:100px';
-      SECTIONS.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; addSec.appendChild(o); });
-      const addList = document.createElement('select');
-      addList.style.cssText = 'font-size:0.75rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;color:#555;max-width:110px';
-      Object.entries(LIST_LABEL).forEach(([k, l]) => { const o = document.createElement('option'); o.value = k; o.textContent = l; if (k === (currentUser ? currentUser.toLowerCase() : 'apt')) o.selected = true; addList.appendChild(o); });
-      // Autofill section + list when a known item is picked
-      addName.addEventListener('input', () => {
-        const match = allListItems.find(it => it.item_name.toLowerCase() === addName.value.toLowerCase());
-        if (match) { addSec.value = match.section || 'Other'; addList.value = canonical(match.list_type || 'apt'); }
-      });
-      const addPrice = document.createElement('input');
-      addPrice.type = 'number'; addPrice.min = '0'; addPrice.step = '0.01'; addPrice.placeholder = '₪';
-      addPrice.style.cssText = 'width:60px;border:1px solid #ddd;border-radius:6px;padding:4px 6px;font-size:0.85rem;text-align:right';
-      const addConfirm = document.createElement('button');
-      addConfirm.textContent = '+ Add';
-      addConfirm.style.cssText = 'background:#2d6a4f;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap';
-      addConfirm.onclick = async () => {
-        const name = addName.value.trim(); if (!name) return;
-        const newItem = { item_name: name, section: addSec.value, list_type: addList.value, price: parseFloat(addPrice.value) || null, quantity: 1 };
-        const td = _tripData[trip.id]; td.items.push(newItem);
-        await db.from('grocery_trips').update({ items: td.items }).eq('id', trip.id);
-        addName.value = ''; addPrice.value = '';
-        openTrips(true);
-      };
-      addName.addEventListener('keydown', e => { if (e.key === 'Enter') addConfirm.click(); });
-      addRow.append(addName, addSec, addList, addPrice, addConfirm);
-      tripBody.appendChild(addRow);
 
       card.append(header, tripBody);
       body.appendChild(card);
@@ -2316,13 +2079,6 @@
     cardEl.remove();
   };
 
-  async function saveTripItem(tripId, itemIdx, updates) {
-    const tripData = _tripData[tripId];
-    if (!tripData) return;
-    Object.assign(tripData.items[itemIdx], updates);
-    await db.from('grocery_trips').update({ items: tripData.items }).eq('id', tripId);
-  }
-
   // ========== RECEIPT ==========
   let _receiptTripId = null;
   let _receiptTripItems = [];
@@ -2345,22 +2101,24 @@
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      showLoadingOverlay('📄 Reading your receipt...\nAI is matching items to your list');
+      setStatus('Reading receipt... ⏳');
       try {
-        // Collect ALL pages then send in one request so AI sees the full receipt
         const pages = await fileToBase64Pages(file);
-        const res = await fetch('https://hpiyvnfhoqnnnotrmwaz.supabase.co/functions/v1/parse-receipt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
-          body: JSON.stringify({ pages: pages.map(p => ({ imageData: p.data, mimeType: p.mimeType })), tripItems: _receiptTripItems })
-        });
-        const result = await res.json();
-        if (result.error) throw new Error(result.error);
-        hideLoadingOverlay();
-        showReceiptReviewAI({ matched: result.matched || [], unmatched: result.unmatched || [] });
+        const allMatched = [], allUnmatched = [];
+        for (const { data, mimeType } of pages) {
+          const res = await fetch('https://hpiyvnfhoqnnnotrmwaz.supabase.co/functions/v1/parse-receipt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+            body: JSON.stringify({ imageData: data, mimeType, tripItems: _receiptTripItems })
+          });
+          const result = await res.json();
+          if (result.error) throw new Error(result.error);
+          if (result.matched) allMatched.push(...result.matched);
+          if (result.unmatched) allUnmatched.push(...result.unmatched);
+        }
+        showReceiptReviewAI({ matched: allMatched, unmatched: allUnmatched });
         setStatus('');
       } catch(err) {
-        hideLoadingOverlay();
         console.error(err);
         setStatus('Could not read receipt — opening manual entry');
         openManualReceipt(tripId);
@@ -2400,66 +2158,36 @@
     let html = '';
     if (matched.length) {
       html += `<div class="receipt-section-title">✅ Matched (${matched.length})</div>`;
-      // Track used trip item indices so duplicates (e.g. 2x cottage cheese) each get their own badge
-      const usedTripIdxs = new Set();
       matched.forEach((m, i) => {
-        const tripItem = _receiptTripItems.find((t, idx) => t.item_name === m.list_item && !usedTripIdxs.has(idx));
-        if (tripItem) usedTripIdxs.add(_receiptTripItems.indexOf(tripItem));
-        const listKey = canonical((tripItem && tripItem.list_type) || 'apt');
-        const badgeColor = LIST_BADGE_COLOR[listKey] || '#aaa';
-        const badgeLabel = LIST_LABEL[listKey] || listKey;
-        html += `<div class="receipt-match-row" style="gap:4px;flex-wrap:wrap;align-items:center">
-          <input id="rn-${i}" type="text" value="${m.list_item.replace(/"/g,'&quot;')}" style="font-size:0.85rem;font-weight:500;border:1px solid #e0e0e0;border-radius:5px;padding:2px 5px;flex:0 1 auto;min-width:60px;max-width:140px" />
-          <span style="font-size:0.72rem;color:#aaa;flex-shrink:0">×</span><input id="rq-${i}" type="number" value="${m.qty||1}" min="1" step="1" style="width:32px;border:1px solid #e0e0e0;border-radius:5px;text-align:center;font-size:0.8rem;padding:2px 2px;flex-shrink:0" />
-          <span style="font-size:0.65rem;padding:1px 5px;border-radius:8px;background:${badgeColor}22;color:${badgeColor};font-weight:600;flex-shrink:0">${badgeLabel}</span>
+        html += `<div class="receipt-match-row">
+          <span class="receipt-match-name">${m.list_item}</span>
+          <span style="font-size:0.72rem;color:#aaa;flex:1;padding:0 4px;overflow:hidden;white-space:nowrap">${m.receipt_name}</span>
           <input class="manual-price-input" id="rp-${i}" type="number" value="${m.price||''}" min="0" step="0.01" />
-          <div style="width:100%;font-size:0.72rem;color:#777;padding:0 4px 2px;direction:rtl;word-break:break-word">${m.receipt_name}</div>
-        </div>`;
-      });
-    }
-    // "On list, not found on receipt" — show BEFORE the unmatched receipt items
-    // Use counts so duplicates (e.g. 2× chicken on the bone) are handled correctly
-    const matchedCounts = {};
-    matched.forEach(m => { matchedCounts[m.list_item] = (matchedCounts[m.list_item] || 0) + 1; });
-    const notOnReceipt = _receiptTripItems.filter(t => {
-      if ((matchedCounts[t.item_name] || 0) > 0) { matchedCounts[t.item_name]--; return false; }
-      return true;
-    });
-    if (notOnReceipt.length) {
-      html += `<div class="receipt-section-title" style="color:#e67e22;margin-top:8px">❓ On your list, not on receipt — enter price if you bought it (${notOnReceipt.length})</div>`;
-      notOnReceipt.forEach((t, i) => {
-        const listKey = canonical(t.list_type || 'apt');
-        const badgeColor = LIST_BADGE_COLOR[listKey] || '#aaa';
-        const badgeLabel = LIST_LABEL[listKey] || listKey;
-        html += `<div class="receipt-match-row" style="gap:4px">
-          <span style="font-size:0.85rem;font-weight:500;flex:1;min-width:60px">${t.item_name}</span>
-          <span style="font-size:0.65rem;padding:1px 5px;border-radius:8px;background:${badgeColor}22;color:${badgeColor};font-weight:600;flex-shrink:0">${badgeLabel}</span>
-          <input class="manual-price-input" id="rp-extra-${i}" type="number" min="0" step="0.01" placeholder="₪" value="${t.price||''}" style="width:70px" />
         </div>`;
       });
     }
     if (unmatched.length) {
-      html += `<div class="receipt-section-title receipt-unmatched" style="margin-top:8px">🧾 On receipt, not on your list — check to add (${unmatched.length})</div>`;
-      const sectionOpts = SECTIONS.map(s => `<option value="${s}">${s}</option>`).join('');
-      const listOpts = Object.entries(LIST_LABEL).map(([k,l]) => `<option value="${k}">${l}</option>`).join('');
-      const attachOpts = `<option value="">+ add as new item</option>` + _receiptTripItems.map((t, ti) => {
-        const lbl = LIST_LABEL[canonical(t.list_type || 'apt')] || t.list_type || '';
-        return `<option value="${ti}">🔗 ${t.item_name} (${lbl})</option>`;
-      }).join('');
-      unmatched.forEach((u, i) => {
-        html += `<div class="receipt-match-row" style="gap:4px;align-items:center">
-          <input type="checkbox" id="add-u-${i}" style="flex-shrink:0;cursor:pointer;width:15px;height:15px" />
-          <input id="uname-${i}" type="text" value="${(u.receipt_name||'').replace(/"/g,'&quot;')}" style="font-size:0.82rem;border:1px solid #e0e0e0;border-radius:5px;padding:2px 5px;flex:1;min-width:70px" />
-          <select id="uattach-${i}" style="font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:115px;background:white" title="Attach to existing item">${attachOpts}</select>
-          <select id="usec-${i}" style="font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:80px;background:white">${sectionOpts}</select>
-          <select id="ulist-${i}" style="font-size:0.65rem;border:1px solid #e0e0e0;border-radius:5px;padding:1px 2px;color:#888;max-width:105px;background:white">${listOpts}</select>
+      html += `<div class="receipt-section-title receipt-unmatched">🧾 On receipt, not on your list (${unmatched.length})</div>`;
+      unmatched.forEach(u => {
+        html += `<div class="receipt-match-row">
+          <span class="receipt-match-name">${u.receipt_name}</span>
           <span class="receipt-match-price">₪${parseFloat(u.price||0).toFixed(2)}</span>
+        </div>`;
+      });
+    }
+    const matchedNames = new Set(matched.map(m => m.list_item));
+    const notOnReceipt = _receiptTripItems.filter(t => !matchedNames.has(t.item_name));
+    if (notOnReceipt.length) {
+      html += `<div class="receipt-section-title" style="color:#e67e22">❓ On list, not found on receipt (${notOnReceipt.length})</div>`;
+      notOnReceipt.forEach((t, i) => {
+        html += `<div class="receipt-match-row">
+          <span class="receipt-match-name">${t.item_name}</span>
+          <input class="manual-price-input" id="rp-extra-${i}" type="number" min="0" step="0.01" placeholder="₪" value="${t.price||''}" />
         </div>`;
       });
     }
     _receiptMatches = matched;
     _receiptMatches._unmatchedTrip = notOnReceipt;
-    _receiptMatches._unmatchedReceipt = unmatched;
     document.getElementById('receipt-modal-body').innerHTML = html;
     document.getElementById('receipt-modal-bg').classList.add('active');
     setStatus('');
@@ -2590,24 +2318,11 @@
       });
     } else {
       // Receipt match mode: rp-0, rp-1, ...
-      const _usedMatchIdxs = new Set();
       _receiptMatches.forEach((m, i) => {
         const input = document.getElementById(`rp-${i}`);
         const price = input ? parseFloat(input.value) || null : null;
-        const originalName = m.list_item || (m.tripItem && m.tripItem.item_name);
-        // Find next unused trip item with this name (handles duplicates like two cottage cheeses)
-        let tiIdx = -1;
-        for (let j = 0; j < _receiptTripItems.length; j++) {
-          if (_receiptTripItems[j].item_name === originalName && !_usedMatchIdxs.has(j)) { tiIdx = j; break; }
-        }
-        if (tiIdx < 0) return;
-        _usedMatchIdxs.add(tiIdx);
-        const ti = updatedItems[tiIdx];
-        ti.price = price;
-        const nameInput = document.getElementById(`rn-${i}`);
-        if (nameInput && nameInput.value.trim() && nameInput.value.trim() !== originalName) ti.item_name = nameInput.value.trim();
-        const qtyInput = document.getElementById(`rq-${i}`);
-        if (qtyInput) ti.quantity = parseInt(qtyInput.value) || 1;
+        const ti = updatedItems.find(u => u.item_name === m.tripItem.item_name);
+        if (ti) ti.price = price;
       });
       if (_receiptMatches._unmatchedTrip) {
         _receiptMatches._unmatchedTrip.forEach((ti, i) => {
@@ -2617,45 +2332,11 @@
           if (u && price) u.price = price;
         });
       }
-      // Add checked unmatched receipt items as new trip items
-      if (_receiptMatches._unmatchedReceipt) {
-        _receiptMatches._unmatchedReceipt.forEach((u, i) => {
-          const chk = document.getElementById(`add-u-${i}`);
-          if (!chk || !chk.checked) return;
-          const nameEl = document.getElementById(`uname-${i}`);
-          const secEl = document.getElementById(`usec-${i}`);
-          const listEl = document.getElementById(`ulist-${i}`);
-          const attachEl = document.getElementById(`uattach-${i}`);
-          const attachTo = attachEl ? attachEl.value : '';
-          let name, section, list_type;
-          if (attachTo !== '') {
-            // Attach to existing trip item by index — copy its name/section/list_type
-            const existing = _receiptTripItems[parseInt(attachTo)];
-            name = existing?.item_name || attachTo;
-            section = existing?.section || 'Other';
-            list_type = existing?.list_type || 'apt';
-          } else {
-            name = (nameEl ? nameEl.value.trim() : u.receipt_name) || u.receipt_name;
-            section = secEl ? secEl.value : 'Other';
-            list_type = listEl ? listEl.value : 'apt';
-          }
-          if (name) updatedItems.push({ item_name: name, section, list_type, price: parseFloat(u.price||0) || null, quantity: 1 });
-        });
-      }
-      // Safety net: never drop items that exist in current trip state
-      const currentItems = (_tripData[_receiptTripId] || {}).items || [];
-      const usedSafetyIdxs = new Set(updatedItems.map((u, i) => i).filter(i => updatedItems[i]._safetyMatched));
-      currentItems.forEach((ci, ciIdx) => {
-        const alreadyIn = updatedItems.filter(u => u.item_name === ci.item_name).length;
-        const inCurrent = currentItems.filter(c => c.item_name === ci.item_name).length;
-        if (alreadyIn < inCurrent) updatedItems.push({ ...ci });
-      });
     }
 
     await db.from('grocery_trips').update({ items: updatedItems }).eq('id', _receiptTripId);
     closeReceiptModal();
     setStatus('Prices saved!');
-    _tripsCache = null;
     openTrips();
   };
 
