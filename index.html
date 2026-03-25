@@ -1358,7 +1358,9 @@
   });
 
   // ========== ADD ==========
+  let _addingItem = false;
   window.addItem = async function(key) {
+    if (_addingItem) return;
     const canonKey = canonical(key);
     const input = document.getElementById(`${key}-input`);
     const sec   = document.getElementById(`${key}-sec`);
@@ -1371,31 +1373,48 @@
     const finalSection = sec.value || 'Other';
     document.getElementById(`${key}-ac`).style.display = 'none';
 
-    const lower = name.toLowerCase();
-    if (!catalog[lower]) {
-      const { data: catRow } = await db.from('grocery_catalog').insert({ name: lower, section: finalSection }).select().single();
-      if (catRow) catalog[lower] = { section: finalSection, id: catRow.id };
-    }
+    // Optimistic: show item instantly with a temp ID
+    _addingItem = true;
+    const tempId = 'temp-' + Date.now();
+    const optimistic = {
+      id: tempId, list_type: canonKey, item_name: name, section: finalSection,
+      checked: false, added_by: currentUser || '', quantity
+    };
+    if (!items[canonKey]) items[canonKey] = [];
+    items[canonKey].push(optimistic);
+    renderAll();
+    input.value = ''; sec.value = ''; if (qtyEl) qtyEl.value = 1;
+    setStatus(`Added "${name}" x${quantity}`);
 
-    const { data: newItem } = await db.from('grocery_items').insert({
-      list_type: canonKey, item_name: name, section: finalSection, checked: false,
-      added_by: currentUser || '', quantity
-    }).select().single();
-
-    if (newItem) {
-      if (!items[canonKey]) items[canonKey] = [];
-      items[canonKey].push(newItem);
-      pushHistory({ type: 'add', item: newItem, canonKey });
+    // Save to DB in background
+    try {
+      const lower = name.toLowerCase();
+      if (!catalog[lower]) {
+        const { data: catRow } = await db.from('grocery_catalog').insert({ name: lower, section: finalSection }).select().single();
+        if (catRow) catalog[lower] = { section: finalSection, id: catRow.id };
+      }
+      const { data: newItem } = await db.from('grocery_items').insert({
+        list_type: canonKey, item_name: name, section: finalSection, checked: false,
+        added_by: currentUser || '', quantity
+      }).select().single();
+      if (newItem) {
+        // Replace temp item with real one
+        const idx = (items[canonKey] || []).findIndex(i => i.id === tempId);
+        if (idx >= 0) items[canonKey][idx] = newItem;
+        pushHistory({ type: 'add', item: newItem, canonKey });
+      }
+    } catch (err) {
+      // Remove optimistic item on failure
+      items[canonKey] = (items[canonKey] || []).filter(i => i.id !== tempId);
       renderAll();
-      input.value = ''; sec.value = ''; if (qtyEl) qtyEl.value = 1;
-      setStatus(`Added "${name}" x${quantity}`);
+      setStatus(`Failed to add "${name}" — try again`);
     }
+    _addingItem = false;
   };
 
   // ========== CHECK ==========
   async function toggleCheck(item, displayKey) {
     const newVal = !item.checked;
-    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
     const canonKey = canonical(displayKey);
     const stored = (items[canonKey] || []).find(i => i.id === item.id);
     if (stored) {
@@ -1403,16 +1422,19 @@
       stored.checked = newVal;
     }
     renderAll();
+    // Save in background
+    db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
   }
 
   // ========== DELETE ==========
   async function deleteItem(item, displayKey) {
     const canonKey = canonical(displayKey);
-    await db.from('grocery_items').delete().eq('id', item.id);
     items[canonKey] = (items[canonKey] || []).filter(i => i.id !== item.id);
     pushHistory({ type: 'delete', item, canonKey });
     renderAll();
     setStatus(`Removed "${item.item_name}"`);
+    // Save in background
+    db.from('grocery_items').delete().eq('id', item.id);
   }
 
   // ========== CLEAR CHECKED ==========
@@ -1420,11 +1442,13 @@
     const canonKey = canonical(key);
     const checked = (items[canonKey] || []).filter(i => i.checked);
     if (!checked.length) return;
-    await db.from('grocery_items').delete().in('id', checked.map(i => i.id));
+    const ids = checked.map(i => i.id);
     items[canonKey] = (items[canonKey] || []).filter(i => !i.checked);
     checked.forEach(item => pushHistory({ type: 'delete', item, canonKey }));
     renderAll();
     setStatus(`Cleared ${checked.length} item(s)`);
+    // Save in background
+    db.from('grocery_items').delete().in('id', ids);
   };
 
   // ========== EDIT ==========
@@ -1700,12 +1724,13 @@
 
   async function shopToggleCheck(item) {
     const newVal = !item.checked;
-    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
     const stored = (items[item._listKey] || []).find(i => i.id === item.id);
     if (stored) stored.checked = newVal;
     item.checked = newVal;
     // Re-render so checked items sink to bottom
     renderShoppingList();
+    // Save in background
+    db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
   }
 
   // ========== STAPLES ==========
