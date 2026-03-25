@@ -1413,7 +1413,6 @@
   // ========== CHECK ==========
   async function toggleCheck(item, displayKey) {
     const newVal = !item.checked;
-    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
     const canonKey = canonical(displayKey);
     const stored = (items[canonKey] || []).find(i => i.id === item.id);
     if (stored) {
@@ -1421,16 +1420,17 @@
       stored.checked = newVal;
     }
     renderAll();
+    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
   }
 
   // ========== DELETE ==========
   async function deleteItem(item, displayKey) {
     const canonKey = canonical(displayKey);
-    await db.from('grocery_items').delete().eq('id', item.id);
     items[canonKey] = (items[canonKey] || []).filter(i => i.id !== item.id);
     pushHistory({ type: 'delete', item, canonKey });
     renderAll();
     setStatus(`Removed "${item.item_name}"`);
+    await db.from('grocery_items').delete().eq('id', item.id);
   }
 
   // ========== CLEAR CHECKED ==========
