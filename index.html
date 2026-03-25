@@ -1428,8 +1428,11 @@
 
   // ========== DELETE ==========
   async function deleteItem(item, displayKey) {
+    console.log('DELETE called:', item.item_name, 'id:', item.id, 'displayKey:', displayKey);
     const canonKey = canonical(displayKey);
+    console.log('canonKey:', canonKey, 'items before:', (items[canonKey]||[]).length);
     items[canonKey] = (items[canonKey] || []).filter(i => i.id !== item.id);
+    console.log('items after:', (items[canonKey]||[]).length);
     pushHistory({ type: 'delete', item, canonKey });
     renderAll();
     setStatus(`Removed "${item.item_name}"`);
