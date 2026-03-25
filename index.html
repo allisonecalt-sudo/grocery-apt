@@ -1553,8 +1553,8 @@
   }
 
   function updateUndoRedo() {
-    document.getElementById('undoBtn').disabled = !history.length;
-    document.getElementById('redoBtn').disabled = !future.length;
+    document.querySelectorAll('.undo-btn').forEach(b => b.disabled = !history.length);
+    document.querySelectorAll('.redo-btn').forEach(b => b.disabled = !future.length);
   }
 
   // ========== TABS ==========
