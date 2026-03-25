@@ -169,8 +169,10 @@
     .item-delete {
       background: none; border: none; color: #ccc;
       cursor: pointer; font-size: 1rem;
-      padding: 2px 4px; border-radius: 4px;
+      padding: 8px 10px; border-radius: 4px;
       transition: color 0.2s; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .item-delete:hover { color: #e07070; }
 
@@ -303,8 +305,10 @@
     .item-edit {
       background: none; border: none; color: #ccc;
       cursor: pointer; font-size: 0.9rem;
-      padding: 2px 4px; border-radius: 4px;
+      padding: 8px 10px; border-radius: 4px;
       transition: color 0.2s; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .item-edit:hover { color: #52b788; }
     .paid-by-pills { display: flex; gap: 3px; margin-top: 3px; }
@@ -1428,16 +1432,22 @@
 
   // ========== DELETE ==========
   async function deleteItem(item, displayKey) {
-    console.log('DELETE called:', item.item_name, 'id:', item.id, 'displayKey:', displayKey);
     const canonKey = canonical(displayKey);
-    console.log('canonKey:', canonKey, 'items before:', (items[canonKey]||[]).length);
     items[canonKey] = (items[canonKey] || []).filter(i => i.id !== item.id);
-    console.log('items after:', (items[canonKey]||[]).length);
     pushHistory({ type: 'delete', item, canonKey });
     renderAll();
-    setStatus(`Removed "${item.item_name}"`);
-    // Save in background
-    db.from('grocery_items').delete().eq('id', item.id);
+    setStatus(`Removing "${item.item_name}"...`);
+    try {
+      await db.from('grocery_items').delete().eq('id', item.id);
+      setStatus(`Removed "${item.item_name}"`);
+    } catch (err) {
+      console.error('Delete failed:', err);
+      // Put it back if DB delete fails
+      if (!items[canonKey]) items[canonKey] = [];
+      items[canonKey].push(item);
+      renderAll();
+      setStatus(`Failed to delete "${item.item_name}"`);
+    }
   }
 
   // ========== CLEAR CHECKED ==========
