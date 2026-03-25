@@ -1374,30 +1374,35 @@
 
     const lower = name.toLowerCase();
     if (!catalog[lower]) {
-      const { data: catRow } = await db.from('grocery_catalog').insert({ name: lower, section: finalSection }).select().single();
+      const { data: catRow, error: catErr } = await db.from('grocery_catalog').insert({ name: lower, section: finalSection }).select().single();
+      if (catErr) console.error('catalog insert error:', catErr);
       if (catRow) catalog[lower] = { section: finalSection, id: catRow.id };
     }
 
-    const { data: newItem } = await db.from('grocery_items').insert({
+    const { data: newItem, error: addErr } = await db.from('grocery_items').insert({
       list_type: canonKey, item_name: name, section: finalSection, checked: false,
       added_by: currentUser || '', quantity
     }).select().single();
 
-    if (newItem) {
+    if (addErr) {
+      setStatus(`Error adding "${name}": ${addErr.message}`);
+      console.error('add item error:', addErr);
+    } else if (newItem) {
       if (!items[canonKey]) items[canonKey] = [];
       items[canonKey].push(newItem);
       pushHistory({ type: 'add', item: newItem, canonKey });
-      renderAll();
       input.value = ''; sec.value = ''; if (qtyEl) qtyEl.value = 1;
       setStatus(`Added "${name}" x${quantity}`);
     }
+    renderAll();
     _addingItem = false;
   };
 
   // ========== CHECK ==========
   async function toggleCheck(item, displayKey) {
     const newVal = !item.checked;
-    await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
+    const { error } = await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
+    if (error) { setStatus(`Error: ${error.message}`); console.error('check error:', error); }
     const canonKey = canonical(displayKey);
     const stored = (items[canonKey] || []).find(i => i.id === item.id);
     if (stored) {
@@ -1410,7 +1415,8 @@
   // ========== DELETE ==========
   async function deleteItem(item, displayKey) {
     const canonKey = canonical(displayKey);
-    await db.from('grocery_items').delete().eq('id', item.id);
+    const { error } = await db.from('grocery_items').delete().eq('id', item.id);
+    if (error) { setStatus(`Error: ${error.message}`); console.error('delete error:', error); }
     items[canonKey] = (items[canonKey] || []).filter(i => i.id !== item.id);
     pushHistory({ type: 'delete', item, canonKey });
     renderAll();
