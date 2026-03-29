@@ -1,0 +1,10 @@
+{
+  "name": "grocery-apt",
+  "private": true,
+  "scripts": {
+    "test": "npx playwright test --reporter=list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}
