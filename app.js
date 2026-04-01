@@ -672,10 +672,18 @@ window.toggleSection = function (bodyId, chevId) {
   document.getElementById(chevId).classList.toggle('open');
 };
 
-function setStatus(msg) {
+let _statusTimer = null;
+function setStatus(msg, isHtml) {
   const bar = document.getElementById('status-bar');
-  bar.textContent = msg;
-  setTimeout(() => (bar.textContent = ''), 3000);
+  if (isHtml) {
+    bar.innerHTML = msg;
+  } else {
+    bar.textContent = msg;
+  }
+  clearTimeout(_statusTimer);
+  if (msg && !isHtml) {
+    _statusTimer = setTimeout(() => (bar.textContent = ''), 3000);
+  }
 }
 
 // ========== SHOPPING MODE ==========
@@ -1309,8 +1317,17 @@ window.addTripItems = async function (idx, totalCount) {
   setStatus(`Added ${added} item(s) to ${LIST_LABEL[targetList] || targetList}`);
 };
 
+let _deletedTrip = null;
+let _undoTimeout = null;
+
 window.deleteTrip = async function (tripId, cardEl) {
+  const tripData = _tripData[tripId];
   cardEl.style.opacity = '0.4';
+
+  // Read full row before deleting so we can restore it
+  const { data: rows } = await db.from('grocery_trips').select('*').eq('id', tripId).limit(1);
+  const fullRow = rows && rows[0];
+
   const { error } = await db.from('grocery_trips').delete().eq('id', tripId);
   if (error) {
     cardEl.style.opacity = '1';
@@ -1318,6 +1335,38 @@ window.deleteTrip = async function (tripId, cardEl) {
     return;
   }
   cardEl.remove();
+  delete _tripData[tripId];
+
+  // Store for undo
+  _deletedTrip = fullRow || { id: tripId, items: tripData?.items || [] };
+  clearTimeout(_undoTimeout);
+  setStatus(
+    'Trip deleted — <a href="#" onclick="undoDeleteTrip();return false" style="color:#2d6a4f;font-weight:600">Undo</a>',
+    true,
+  );
+  _undoTimeout = setTimeout(() => {
+    _deletedTrip = null;
+    setStatus('');
+  }, 10000);
+};
+
+window.undoDeleteTrip = async function () {
+  if (!_deletedTrip) {
+    setStatus('Nothing to undo');
+    return;
+  }
+  clearTimeout(_undoTimeout);
+  const row = _deletedTrip;
+  _deletedTrip = null;
+  setStatus('Restoring trip...');
+  const { error } = await db.from('grocery_trips').insert(row);
+  if (error) {
+    console.error('Undo failed:', error);
+    setStatus('Undo failed — trip could not be restored');
+    return;
+  }
+  setStatus('Trip restored ✓');
+  openTrips();
 };
 
 // ========== RECEIPT ==========
