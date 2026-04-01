@@ -1351,25 +1351,42 @@ window.openReceiptUpload = function (tripId) {
       const pages = await fileToBase64Pages(file);
       const allMatched = [],
         allUnmatched = [];
-      for (const { data, mimeType } of pages) {
-        const res = await fetch(
-          'https://hpiyvnfhoqnnnotrmwaz.supabase.co/functions/v1/parse-receipt',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${SUPABASE_KEY}`,
+      let pagesOk = 0;
+      for (let pi = 0; pi < pages.length; pi++) {
+        const { data, mimeType } = pages[pi];
+        setStatus(`Reading receipt... ⏳ (page ${pi + 1}/${pages.length})`);
+        try {
+          const res = await fetch(
+            'https://hpiyvnfhoqnnnotrmwaz.supabase.co/functions/v1/parse-receipt',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${SUPABASE_KEY}`,
+              },
+              body: JSON.stringify({ imageData: data, mimeType, tripItems: _receiptTripItems }),
             },
-            body: JSON.stringify({ imageData: data, mimeType, tripItems: _receiptTripItems }),
-          },
-        );
-        const result = await res.json();
-        if (result.error) throw new Error(result.error);
-        if (result.matched) allMatched.push(...result.matched);
-        if (result.unmatched) allUnmatched.push(...result.unmatched);
+          );
+          const result = await res.json();
+          if (result.error) {
+            console.warn(`Receipt page ${pi + 1} error:`, result.error);
+            continue;
+          }
+          if (result.matched) allMatched.push(...result.matched);
+          if (result.unmatched) allUnmatched.push(...result.unmatched);
+          pagesOk++;
+        } catch (pageErr) {
+          console.warn(`Receipt page ${pi + 1} failed:`, pageErr);
+        }
       }
-      showReceiptReviewAI({ matched: allMatched, unmatched: allUnmatched });
-      setStatus('');
+      if (pagesOk > 0 && (allMatched.length || allUnmatched.length)) {
+        const partial = pagesOk < pages.length ? ` (${pagesOk}/${pages.length} pages read)` : '';
+        showReceiptReviewAI({ matched: allMatched, unmatched: allUnmatched });
+        setStatus(partial ? `⚠ Some pages could not be read${partial}` : '');
+      } else {
+        setStatus('Could not read receipt — opening manual entry');
+        openManualReceipt(tripId);
+      }
     } catch (err) {
       console.error(err);
       setStatus('Could not read receipt — opening manual entry');
