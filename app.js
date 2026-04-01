@@ -1180,6 +1180,7 @@ window.openTrips = async function () {
     delBtn.textContent = '🗑';
     delBtn.onclick = (e) => {
       e.stopPropagation();
+      if (!confirm('Delete this trip?')) return;
       deleteTrip(trip.id, card);
     };
 
@@ -1507,8 +1508,9 @@ function showReceiptReviewAI({ matched, unmatched }) {
   }
   if (unmatched.length) {
     html += `<div class="receipt-section-title receipt-unmatched">🧾 On receipt, not on your list (${unmatched.length})</div>`;
-    unmatched.forEach((u) => {
+    unmatched.forEach((u, i) => {
       html += `<div class="receipt-match-row">
+          <input type="checkbox" id="add-unmatched-${i}" style="margin-left:4px;accent-color:#2d6a4f" />
           <span class="receipt-match-name">${u.receipt_name}</span>
           <span class="receipt-match-price">₪${parseFloat(u.price || 0).toFixed(2)}</span>
         </div>`;
@@ -1525,8 +1527,13 @@ function showReceiptReviewAI({ matched, unmatched }) {
         </div>`;
     });
   }
+  const total =
+    matched.reduce((s, m) => s + (parseFloat(m.price) || 0), 0) +
+    unmatched.reduce((s, u) => s + (parseFloat(u.price) || 0), 0);
+  html += `<div class="receipt-total-line" style="margin-top:10px;font-weight:600;text-align:center">Receipt total: ₪${total.toFixed(2)}</div>`;
   _receiptMatches = matched;
   _receiptMatches._unmatchedTrip = notOnReceipt;
+  _receiptMatches._unmatchedReceipt = unmatched;
   document.getElementById('receipt-modal-body').innerHTML = html;
   document.getElementById('receipt-modal-bg').classList.add('active');
   setStatus('');
@@ -1706,6 +1713,22 @@ window.saveReceiptPrices = async function () {
         const price = input ? parseFloat(input.value) || null : null;
         const u = updatedItems.find((u) => u.item_name === ti.item_name);
         if (u && price) u.price = price;
+      });
+    }
+    // Add checked unmatched receipt items to trip
+    if (_receiptMatches._unmatchedReceipt) {
+      _receiptMatches._unmatchedReceipt.forEach((u, i) => {
+        const cb = document.getElementById(`add-unmatched-${i}`);
+        if (cb && cb.checked) {
+          updatedItems.push({
+            item_name: u.receipt_name,
+            section: 'Other',
+            quantity: u.qty || 1,
+            price: parseFloat(u.price) || null,
+            paid_by: 'joint',
+            list_type: 'apt',
+          });
+        }
       });
     }
   }
