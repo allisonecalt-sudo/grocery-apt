@@ -1325,6 +1325,20 @@ let _receiptTripId = null;
 let _receiptTripItems = [];
 let _receiptMatches = [];
 
+function showReceiptLoading(msg) {
+  const body = document.getElementById('receipt-modal-body');
+  body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1rem;gap:1rem;">
+    <div class="receipt-spinner"></div>
+    <div id="receipt-loading-msg" style="color:#ccc;font-size:0.85rem;">${msg || 'Reading receipt... ⏳'}</div>
+  </div>`;
+  document.getElementById('receipt-modal-bg').classList.add('active');
+}
+
+function updateReceiptLoading(msg) {
+  const el = document.getElementById('receipt-loading-msg');
+  if (el) el.textContent = msg;
+}
+
 window.editTripName = async function (tripId, currentName) {
   const name = prompt('Trip name:', currentName || '');
   if (name === null) return;
@@ -1346,6 +1360,7 @@ window.openReceiptUpload = function (tripId) {
   input.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    showReceiptLoading();
     setStatus('Reading receipt... ⏳');
     try {
       const pages = await fileToBase64Pages(file);
@@ -1355,6 +1370,7 @@ window.openReceiptUpload = function (tripId) {
       for (let pi = 0; pi < pages.length; pi++) {
         const { data, mimeType } = pages[pi];
         setStatus(`Reading receipt... ⏳ (page ${pi + 1}/${pages.length})`);
+        updateReceiptLoading(`Reading receipt... ⏳ (page ${pi + 1}/${pages.length})`);
         try {
           const res = await fetch(
             'https://hpiyvnfhoqnnnotrmwaz.supabase.co/functions/v1/parse-receipt',
@@ -1631,7 +1647,8 @@ window.saveReceiptPrices = async function () {
     _receiptMatches.forEach((m, i) => {
       const input = document.getElementById(`rp-${i}`);
       const price = input ? parseFloat(input.value) || null : null;
-      const ti = updatedItems.find((u) => u.item_name === m.tripItem.item_name);
+      const name = m.tripItem ? m.tripItem.item_name : m.list_item;
+      const ti = updatedItems.find((u) => u.item_name === name);
       if (ti) ti.price = price;
     });
     if (_receiptMatches._unmatchedTrip) {

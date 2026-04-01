@@ -1205,6 +1205,19 @@ header h1 {
 .receipt-unmatched {
   color: #e74c3c;
 }
+.receipt-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #2d6a4f;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .receipt-save-btn {
   flex: 1;
   background: #2d6a4f;
