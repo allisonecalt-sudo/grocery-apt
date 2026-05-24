@@ -45,32 +45,6 @@ header h1 {
   gap: 12px;
 }
 
-/* Who-am-I pills — segment-control, lifted into header row */
-.who-row {
-  display: flex;
-  gap: 6px;
-}
-.who-btn {
-  border: 1.5px solid rgba(255, 255, 255, 0.5);
-  background: transparent;
-  color: white;
-  border-radius: 18px;
-  padding: 5px 14px;
-  font-size: 0.82rem;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-weight: 500;
-}
-.who-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-.who-btn.selected {
-  background: white;
-  color: #2d6a4f;
-  border-color: white;
-  font-weight: 700;
-}
-
 /* Desktop-only management tools (catalog/undo/redo) */
 .header-tools {
   display: flex;
@@ -405,41 +379,6 @@ header h1 {
   background: #ffe0de;
 }
 
-/* === TABS === */
-.tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.tab-btn {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 12px;
-  font-size: 0.92rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: white;
-  color: #666;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-.tab-btn.active-allison {
-  background: #d4edda;
-  color: #1a5c3a;
-}
-.tab-btn.active-avital {
-  background: #fff3cd;
-  color: #7a5a00;
-}
-
-.tab-content {
-  display: none;
-}
-.tab-content.active {
-  display: block;
-}
-
 /* === PERSON COLORS === */
 .person-allison .section-header {
   color: #1a5c3a;
@@ -770,18 +709,19 @@ header h1 {
 .snackbar-undo:hover {
   background: rgba(255, 255, 255, 0.08);
 }
+/* Warn-style snackbar — Supabase write failed, action surfaces retry. */
+.snackbar.snackbar-warn {
+  background: #b8651a;
+}
+.snackbar.snackbar-warn .snackbar-undo {
+  color: #ffe4b3;
+}
 
 /* === MOBILE TWEAKS === */
 @media (max-width: 640px) {
   /* Hide desktop-management tools on mobile (catalog edit, undo/redo). */
   .header-tools {
     display: none;
-  }
-  /* Who-pills: bigger tap target on mobile (was 73x27 — below 44 vertical) */
-  .who-btn {
-    min-height: 44px;
-    padding: 10px 16px;
-    font-size: 0.88rem;
   }
   /* Clear-checked: 121x30 -> ensure 44 vertical */
   .clear-btn {

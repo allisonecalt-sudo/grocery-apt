@@ -7,7 +7,6 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const PAID_BY_OPTIONS = {
   allison_avital: ['joint', 'Allison', 'Avital'],
-  avital_allison: ['joint', 'Allison', 'Avital'],
 };
 
 const SECTIONS = [
@@ -31,39 +30,16 @@ const SECTIONS = [
   'Other',
 ];
 
-const ALIAS = {
-  avital_allison: 'allison_avital',
-};
-function canonical(k) {
-  return ALIAS[k] || k;
-}
+// All lists rendered on the single surface.
+const ALL_LISTS = ['apt', 'allison', 'avital', 'allison_avital', 'allison_nutritionist'];
 
 let catalog = {};
 let items = {};
 let history = [];
 let future = [];
-let currentUser = localStorage.getItem('grocery_who') || '';
-
-// ========== WHO AM I ==========
-window.setWho = async function (name) {
-  currentUser = name;
-  localStorage.setItem('grocery_who', name);
-  document.querySelectorAll('.who-btn').forEach((b) => b.classList.remove('selected'));
-  document.getElementById(`who-${name}`).classList.add('selected');
-  switchTab(name.toLowerCase());
-};
-
-function initWho() {
-  if (currentUser) {
-    const btn = document.getElementById(`who-${currentUser}`);
-    if (btn) btn.classList.add('selected');
-    switchTab(currentUser.toLowerCase());
-  }
-}
 
 // ========== INIT ==========
 async function init() {
-  initWho();
   await loadCatalog();
   await loadItems();
   populateSectionDropdowns();
@@ -117,9 +93,7 @@ function sortItems(list) {
 
 // ========== RENDER ==========
 function renderAll() {
-  const allLists = ['apt', 'allison', 'avital', 'allison_avital', 'allison_nutritionist'];
-  allLists.forEach((k) => renderList(k));
-  renderMirror('avital_allison', 'allison_avital');
+  ALL_LISTS.forEach((k) => renderList(k));
   renderCatalog();
   updateUndoRedo();
 }
@@ -148,28 +122,6 @@ function renderList(key) {
   }
 }
 
-function renderMirror(mirrorKey, canonKey) {
-  const ul = document.getElementById(`${mirrorKey}-items`);
-  const empty = document.getElementById(`${mirrorKey}-empty`);
-  const count = document.getElementById(`${mirrorKey}-count`);
-  if (!ul) return;
-  const list = sortItems(items[canonKey] || []);
-  ul.innerHTML = '';
-  buildGroupedList(ul, list, mirrorKey, false);
-  empty.style.display = list.length ? 'none' : 'block';
-  count.textContent = list.length;
-  const body = document.getElementById(`${mirrorKey}-body`);
-  const chev = document.getElementById(`${mirrorKey}-chev`);
-  if (body && list.length === 0) {
-    body.classList.add('collapsed');
-    if (chev) chev.classList.remove('open');
-  }
-  if (body && list.length > 0) {
-    body.classList.remove('collapsed');
-    if (chev) chev.classList.add('open');
-  }
-}
-
 function buildGroupedList(ul, sortedList, displayKey, isNutri) {
   let lastSection = null;
   sortedList.forEach((item) => {
@@ -187,6 +139,8 @@ function buildGroupedList(ul, sortedList, displayKey, isNutri) {
 function makeRow(item, displayKey) {
   const li = document.createElement('li');
   li.className = 'item-row';
+  // Mark optimistically-added rows so we can detect them if needed.
+  if (item._optimistic) li.dataset.optimistic = '1';
 
   const chk = document.createElement('div');
   chk.className = 'item-check' + (item.checked ? ' checked' : '');
@@ -407,143 +361,312 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.autocomplete-list').forEach((el) => (el.style.display = 'none'));
 });
 
-// ========== ADD ==========
+// ========== ADD (optimistic) ==========
+// Render with a temp id immediately, fire INSERT in background, swap temp id for real id on success.
 let _addingItem = false;
 window.addItem = async function (key) {
   if (_addingItem) return;
   _addingItem = true;
-  const canonKey = canonical(key);
   const input = document.getElementById(`${key}-input`);
   const sec = document.getElementById(`${key}-sec`);
   const qtyEl = document.getElementById(`${key}-qty`);
   const name = input.value.trim();
-  const section = sec.value;
   const quantity = parseInt(qtyEl?.value) || 1;
   if (!name) {
     _addingItem = false;
     return;
   }
-  if (!section) {
-    sec.value = 'Other';
-  }
+  if (!sec.value) sec.value = 'Other';
   const finalSection = sec.value || 'Other';
   document.getElementById(`${key}-ac`).style.display = 'none';
 
-  const lower = name.toLowerCase();
-  if (!catalog[lower]) {
-    const { data: catRow, error: catErr } = await db
-      .from('grocery_catalog')
-      .insert({ name: lower, section: finalSection })
-      .select()
-      .single();
-    if (catErr) console.error('catalog insert error:', catErr);
-    if (catRow) catalog[lower] = { section: finalSection, id: catRow.id };
-  }
-
-  const { data: newItem, error: addErr } = await db
-    .from('grocery_items')
-    .insert({
-      list_type: canonKey,
-      item_name: name,
-      section: finalSection,
-      checked: false,
-      added_by: currentUser || '',
-      quantity,
-    })
-    .select()
-    .single();
-
-  if (addErr) {
-    setStatus(`Error adding "${name}": ${addErr.message}`);
-    console.error('add item error:', addErr);
-  } else if (newItem) {
-    if (!items[canonKey]) items[canonKey] = [];
-    items[canonKey].push(newItem);
-    pushHistory({ type: 'add', item: newItem, canonKey });
-    input.value = '';
-    sec.value = '';
-    if (qtyEl) qtyEl.value = 1;
-    setStatus(`Added "${name}" x${quantity}`);
-  }
+  // Step 1: optimistic local state with a temp id.
+  const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const optimisticItem = {
+    id: tempId,
+    list_type: key,
+    item_name: name,
+    section: finalSection,
+    checked: false,
+    quantity,
+    paid_by: 'joint',
+    _optimistic: true,
+  };
+  if (!items[key]) items[key] = [];
+  items[key].push(optimisticItem);
+  // Reset inputs so she can keep typing.
+  input.value = '';
+  sec.value = '';
+  if (qtyEl) qtyEl.value = 1;
   renderAll();
   _addingItem = false;
-};
 
-// ========== CHECK ==========
-async function toggleCheck(item, displayKey) {
-  const newVal = !item.checked;
-  const { error } = await db.from('grocery_items').update({ checked: newVal }).eq('id', item.id);
-  if (error) {
-    setStatus(`Error: ${error.message}`);
-    console.error('check error:', error);
-  }
-  const canonKey = canonical(displayKey);
-  const stored = (items[canonKey] || []).find((i) => i.id === item.id);
-  if (stored) {
-    pushHistory({ type: newVal ? 'check' : 'uncheck', item: { ...stored }, canonKey });
-    stored.checked = newVal;
-  }
-  renderAll();
-}
-
-// ========== DELETE ==========
-async function deleteItem(item, displayKey) {
-  const canonKey = canonical(displayKey);
-  const { error } = await db.from('grocery_items').delete().eq('id', item.id);
-  if (error) {
-    setStatus(`Error: ${error.message}`);
-    console.error('delete error:', error);
-  }
-  items[canonKey] = (items[canonKey] || []).filter((i) => i.id !== item.id);
-  pushHistory({ type: 'delete', item, canonKey });
-  renderAll();
-  setStatus(`Removed "${item.item_name}"`);
-}
-
-// ========== CLEAR CHECKED ==========
-// Silently saves a trip to Supabase first (pullable archive), then deletes.
-window.clearChecked = async function (key) {
-  const canonKey = canonical(key);
-  const checked = (items[canonKey] || []).filter((i) => i.checked);
-  if (!checked.length) return;
-
-  // Silent trip save — data is preserved in grocery_trips for future use.
+  // Step 2: catalog ensure (background) + INSERT.
   try {
-    const tripItems = checked.map((i) => ({
-      item_name: i.item_name,
-      section: i.section,
-      list_type: i.list_type,
-      quantity: i.quantity || 1,
-      paid_by: i.paid_by || 'joint',
-    }));
-    await db.from('grocery_trips').insert({
-      trip_date: new Date().toISOString().split('T')[0],
-      shopper: currentUser || 'Unknown',
-      items: tripItems,
-    });
-  } catch (err) {
-    // Trip-save failure should not block the clear — log and continue.
-    console.warn('Silent trip save failed:', err);
-  }
+    const lower = name.toLowerCase();
+    if (!catalog[lower]) {
+      const { data: catRow } = await db
+        .from('grocery_catalog')
+        .insert({ name: lower, section: finalSection })
+        .select()
+        .single();
+      if (catRow) catalog[lower] = { section: finalSection, id: catRow.id };
+    }
 
-  await db
-    .from('grocery_items')
-    .delete()
-    .in(
-      'id',
-      checked.map((i) => i.id),
-    );
-  items[canonKey] = (items[canonKey] || []).filter((i) => !i.checked);
-  checked.forEach((item) => pushHistory({ type: 'delete', item, canonKey }));
-  renderAll();
-  setStatus(`Cleared ${checked.length} item(s)`);
+    const { data: newItem, error: addErr } = await db
+      .from('grocery_items')
+      .insert({
+        list_type: key,
+        item_name: name,
+        section: finalSection,
+        checked: false,
+        added_by: '',
+        quantity,
+      })
+      .select()
+      .single();
+
+    if (addErr || !newItem) throw addErr || new Error('No row returned');
+
+    // Step 3: swap temp id for real id in local state.
+    const stored = (items[key] || []).find((i) => i.id === tempId);
+    if (stored) {
+      Object.assign(stored, newItem);
+      delete stored._optimistic;
+    }
+    pushHistory({ type: 'add', item: { ...newItem }, canonKey: key });
+    renderAll();
+  } catch (err) {
+    console.error('add item error:', err);
+    // Rollback optimistic row + retry-on-tap snackbar.
+    items[key] = (items[key] || []).filter((i) => i.id !== tempId);
+    renderAll();
+    showRetrySnackbar(`Could not add "${name}" — tap to retry`, () => {
+      input.value = name;
+      sec.value = finalSection;
+      if (qtyEl) qtyEl.value = quantity;
+      addItem(key);
+    });
+  }
 };
 
-// ========== EDIT ==========
+// ========== CHECK (optimistic + undo) ==========
+async function toggleCheck(item, displayKey) {
+  if (item._optimistic) return; // can't check a row that hasn't persisted
+  const prevChecked = item.checked;
+  const newVal = !prevChecked;
+
+  // Step 1: optimistic local + render.
+  const stored = (items[displayKey] || []).find((i) => i.id === item.id);
+  if (stored) stored.checked = newVal;
+  renderAll();
+
+  // Step 2: snackbar offering Undo.
+  const verb = newVal ? 'Checked' : 'Unchecked';
+  let undone = false;
+  showUndoSnackbar(`${verb} "${item.item_name}"`, async () => {
+    if (undone) return;
+    undone = true;
+    const s2 = (items[displayKey] || []).find((i) => i.id === item.id);
+    if (s2) s2.checked = prevChecked;
+    renderAll();
+    // Fire inverse Supabase op (race-safe: works whether original write completed or not).
+    await dbWriteWithRetry(() =>
+      db.from('grocery_items').update({ checked: prevChecked }).eq('id', item.id),
+    );
+  });
+
+  // Step 3: background write + auto-retry.
+  const ok = await dbWriteWithRetry(() =>
+    db.from('grocery_items').update({ checked: newVal }).eq('id', item.id),
+  );
+  if (!ok && !undone) {
+    // Rollback local + flip snackbar to retry.
+    const s3 = (items[displayKey] || []).find((i) => i.id === item.id);
+    if (s3) s3.checked = prevChecked;
+    renderAll();
+    showRetrySnackbar(`Save failed — tap to retry`, () => toggleCheck(item, displayKey));
+    return;
+  }
+
+  if (!undone) {
+    pushHistory({ type: newVal ? 'check' : 'uncheck', item: { ...item }, canonKey: displayKey });
+  }
+}
+
+// ========== DELETE (optimistic + undo) ==========
+async function deleteItem(item, displayKey) {
+  if (item._optimistic) {
+    // Row not persisted yet — just yank it from local state.
+    items[displayKey] = (items[displayKey] || []).filter((i) => i.id !== item.id);
+    renderAll();
+    return;
+  }
+  const snapshot = { ...item };
+
+  // Step 1: optimistic local remove.
+  items[displayKey] = (items[displayKey] || []).filter((i) => i.id !== item.id);
+  renderAll();
+
+  // Step 2: snackbar Undo (re-insert restored row).
+  let undone = false;
+  showUndoSnackbar(`Removed "${snapshot.item_name}"`, async () => {
+    if (undone) return;
+    undone = true;
+    // Optimistically restore visually first.
+    if (!items[displayKey]) items[displayKey] = [];
+    items[displayKey].push({ ...snapshot, _optimistic: true });
+    renderAll();
+    // Re-insert in DB with a fresh row (id will change — that's fine for undo semantics).
+    try {
+      const { data: r } = await db
+        .from('grocery_items')
+        .insert({
+          list_type: snapshot.list_type,
+          item_name: snapshot.item_name,
+          section: snapshot.section,
+          checked: snapshot.checked,
+          added_by: snapshot.added_by || '',
+          quantity: snapshot.quantity || 1,
+          paid_by: snapshot.paid_by || 'joint',
+        })
+        .select()
+        .single();
+      if (r) {
+        const placeholder = (items[displayKey] || []).find(
+          (i) => i._optimistic && i.item_name === snapshot.item_name,
+        );
+        if (placeholder) {
+          Object.assign(placeholder, r);
+          delete placeholder._optimistic;
+        }
+        renderAll();
+      }
+    } catch (err) {
+      console.error('undo-delete reinsert failed:', err);
+      showRetrySnackbar('Could not undo — tap to retry', async () => {
+        const placeholder = (items[displayKey] || []).find(
+          (i) => i._optimistic && i.item_name === snapshot.item_name,
+        );
+        if (placeholder) {
+          items[displayKey] = (items[displayKey] || []).filter((i) => i !== placeholder);
+          renderAll();
+        }
+      });
+    }
+  });
+
+  // Step 3: background DELETE + auto-retry.
+  const ok = await dbWriteWithRetry(() => db.from('grocery_items').delete().eq('id', item.id));
+  if (!ok && !undone) {
+    // Restore row visually + flip snackbar to retry.
+    if (!items[displayKey]) items[displayKey] = [];
+    items[displayKey].push(snapshot);
+    renderAll();
+    showRetrySnackbar('Save failed — tap to retry', () => deleteItem(item, displayKey));
+    return;
+  }
+
+  if (!undone) {
+    pushHistory({ type: 'delete', item: snapshot, canonKey: displayKey });
+  }
+}
+
+// ========== CLEAR CHECKED (optimistic + bulk undo) ==========
+window.clearChecked = async function (key) {
+  const checked = (items[key] || []).filter((i) => i.checked && !i._optimistic);
+  if (!checked.length) return;
+  const snapshots = checked.map((i) => ({ ...i }));
+  const ids = checked.map((i) => i.id);
+
+  // Step 1: optimistic local remove.
+  items[key] = (items[key] || []).filter((i) => !ids.includes(i.id));
+  renderAll();
+
+  // Step 2: silent trip save (best-effort, non-blocking) + bulk undo snackbar.
+  const tripPromise = db
+    .from('grocery_trips')
+    .insert({
+      trip_date: new Date().toISOString().split('T')[0],
+      shopper: 'Allison',
+      items: snapshots.map((i) => ({
+        item_name: i.item_name,
+        section: i.section,
+        list_type: i.list_type,
+        quantity: i.quantity || 1,
+        paid_by: i.paid_by || 'joint',
+      })),
+    })
+    .then(null, (err) => console.warn('Silent trip save failed:', err));
+
+  let undone = false;
+  showUndoSnackbar(
+    `Cleared ${snapshots.length} item${snapshots.length === 1 ? '' : 's'}`,
+    async () => {
+      if (undone) return;
+      undone = true;
+      // Optimistically restore — best-effort re-insert (ids may change).
+      if (!items[key]) items[key] = [];
+      snapshots.forEach((s) => items[key].push({ ...s, _optimistic: true }));
+      renderAll();
+      try {
+        const inserts = snapshots.map((s) => ({
+          list_type: s.list_type,
+          item_name: s.item_name,
+          section: s.section,
+          checked: s.checked,
+          added_by: s.added_by || '',
+          quantity: s.quantity || 1,
+          paid_by: s.paid_by || 'joint',
+        }));
+        const { data: rows } = await db.from('grocery_items').insert(inserts).select();
+        if (rows) {
+          // Replace optimistic placeholders by item_name match (good-enough for bulk undo).
+          rows.forEach((r) => {
+            const ph = (items[key] || []).find(
+              (i) => i._optimistic && i.item_name === r.item_name && i.section === r.section,
+            );
+            if (ph) {
+              Object.assign(ph, r);
+              delete ph._optimistic;
+            }
+          });
+          renderAll();
+        }
+      } catch (err) {
+        console.error('undo-clear reinsert failed:', err);
+        showRetrySnackbar('Could not undo all — tap to retry', () => clearChecked(key));
+      }
+    },
+  );
+
+  // Step 3: background bulk delete + auto-retry.
+  const ok = await dbWriteWithRetry(() => db.from('grocery_items').delete().in('id', ids));
+  if (!ok && !undone) {
+    if (!items[key]) items[key] = [];
+    snapshots.forEach((s) => items[key].push(s));
+    renderAll();
+    showRetrySnackbar('Save failed — tap to retry', () => clearChecked(key));
+    return;
+  }
+
+  // Wait on trip save to surface any warning (silently).
+  await tripPromise;
+
+  if (!undone) {
+    snapshots.forEach((s) => pushHistory({ type: 'delete', item: s, canonKey: key }));
+  }
+};
+
+// ========== EDIT (non-optimistic by design — modal commit) ==========
 let _editItem = null;
 let _editDisplayKey = null;
 
 window.openEditModal = function (item, displayKey) {
+  if (item._optimistic) {
+    setStatus('Still saving — try again in a moment');
+    return;
+  }
   _editItem = item;
   _editDisplayKey = displayKey;
   document.getElementById('edit-name').value = item.item_name;
@@ -571,29 +694,28 @@ window.saveEdit = async function () {
     return;
   }
 
-  const oldCanon = canonical(_editDisplayKey);
-  const newCanon = canonical(newList);
+  const oldKey = _editDisplayKey;
 
   await db
     .from('grocery_items')
     .update({
       item_name: newName,
       section: newSection,
-      list_type: newCanon,
+      list_type: newList,
       quantity: newQty,
     })
     .eq('id', _editItem.id);
 
-  items[oldCanon] = (items[oldCanon] || []).filter((i) => i.id !== _editItem.id);
+  items[oldKey] = (items[oldKey] || []).filter((i) => i.id !== _editItem.id);
   const updatedItem = {
     ..._editItem,
     item_name: newName,
     section: newSection,
-    list_type: newCanon,
+    list_type: newList,
     quantity: newQty,
   };
-  if (!items[newCanon]) items[newCanon] = [];
-  items[newCanon].push(updatedItem);
+  if (!items[newList]) items[newList] = [];
+  items[newList].push(updatedItem);
 
   setStatus(`Updated "${newName}"`);
   closeEditModal();
@@ -610,7 +732,7 @@ window.toggleCatalog = function () {
   document.getElementById('catalog-editor').classList.toggle('open');
 };
 
-// ========== UNDO / REDO ==========
+// ========== UNDO / REDO (desktop ↩/↪ — separate from snackbar undo) ==========
 function pushHistory(action) {
   history.push(action);
   future = [];
@@ -644,7 +766,9 @@ async function reverseAction({ type, item, canonKey }) {
         item_name: item.item_name,
         section: item.section,
         checked: item.checked,
-        added_by: item.added_by,
+        added_by: item.added_by || '',
+        quantity: item.quantity || 1,
+        paid_by: item.paid_by || 'joint',
       })
       .select()
       .single();
@@ -674,7 +798,9 @@ async function applyAction({ type, item, canonKey }) {
         item_name: item.item_name,
         section: item.section,
         checked: item.checked,
-        added_by: item.added_by,
+        added_by: item.added_by || '',
+        quantity: item.quantity || 1,
+        paid_by: item.paid_by || 'joint',
       })
       .select()
       .single();
@@ -703,19 +829,6 @@ function updateUndoRedo() {
   document.querySelectorAll('.redo-btn').forEach((b) => (b.disabled = !future.length));
 }
 
-// ========== TABS ==========
-window.switchTab = function (person) {
-  ['allison', 'avital'].forEach((p) => {
-    const el = document.getElementById(`content-${p}`);
-    if (el) el.classList.toggle('active', p === person);
-    const btn = document.getElementById(`tab-${p}`);
-    if (btn) {
-      btn.className = 'tab-btn';
-      if (p === person) btn.classList.add(`active-${p}`);
-    }
-  });
-};
-
 window.toggleSection = function (bodyId, chevId) {
   document.getElementById(bodyId).classList.toggle('collapsed');
   document.getElementById(chevId).classList.toggle('open');
@@ -737,16 +850,14 @@ function setStatus(msg, isHtml) {
 }
 
 // ========== NUTRITIONIST → ALLISON COPY (with snackbar undo) ==========
-let _snackTimer = null;
 let _lastNutriCopyId = null;
 
 async function nutriAddToAllison(nutriItem) {
-  // Copy (not move) the item to allison list with a fresh id.
   const existing = (items['allison'] || []).find(
     (i) => i.item_name.toLowerCase() === nutriItem.item_name.toLowerCase(),
   );
   if (existing) {
-    showSnackbar(`"${nutriItem.item_name}" already on your list`, null);
+    showUndoSnackbar(`"${nutriItem.item_name}" already on your list`, null);
     return;
   }
   const { data: newItem, error } = await db
@@ -763,18 +874,17 @@ async function nutriAddToAllison(nutriItem) {
     .single();
   if (error || !newItem) {
     console.error('nutri copy error:', error);
-    showSnackbar('Could not add — try again', null);
+    showUndoSnackbar('Could not add — try again', null);
     return;
   }
   if (!items['allison']) items['allison'] = [];
   items['allison'].push(newItem);
   _lastNutriCopyId = newItem.id;
   renderAll();
-  showSnackbar("Added to Allison's List", () => undoNutriCopy(newItem.id));
+  showUndoSnackbar("Added to Allison's List", () => undoNutriCopy(newItem.id));
 }
 
 async function undoNutriCopy(itemId) {
-  // Remove the freshly-copied row from allison's list.
   if (_lastNutriCopyId !== itemId) return;
   await db.from('grocery_items').delete().eq('id', itemId);
   items['allison'] = (items['allison'] || []).filter((i) => i.id !== itemId);
@@ -783,9 +893,13 @@ async function undoNutriCopy(itemId) {
   hideSnackbar();
 }
 
-function showSnackbar(msg, undoCallback) {
+// ========== SNACKBAR (shared: undo + retry variants) ==========
+let _snackTimer = null;
+
+function showUndoSnackbar(msg, undoCallback) {
   const bar = document.getElementById('snackbar');
   if (!bar) return;
+  bar.classList.remove('snackbar-warn');
   bar.innerHTML = '';
   const span = document.createElement('span');
   span.textContent = msg;
@@ -795,6 +909,7 @@ function showSnackbar(msg, undoCallback) {
     btn.className = 'snackbar-undo';
     btn.textContent = 'Undo';
     btn.onclick = () => {
+      hideSnackbar();
       undoCallback();
     };
     bar.appendChild(btn);
@@ -804,10 +919,59 @@ function showSnackbar(msg, undoCallback) {
   _snackTimer = setTimeout(() => hideSnackbar(), 5000);
 }
 
+function showRetrySnackbar(msg, retryCallback) {
+  // Warn-style (orange) snackbar with tap-to-retry. Longer timeout — 8s.
+  const bar = document.getElementById('snackbar');
+  if (!bar) return;
+  bar.classList.add('snackbar-warn');
+  bar.innerHTML = '';
+  const span = document.createElement('span');
+  span.textContent = msg;
+  bar.appendChild(span);
+  if (retryCallback) {
+    const btn = document.createElement('button');
+    btn.className = 'snackbar-undo';
+    btn.textContent = 'Retry';
+    btn.onclick = () => {
+      hideSnackbar();
+      retryCallback();
+    };
+    bar.appendChild(btn);
+  }
+  bar.classList.add('visible');
+  clearTimeout(_snackTimer);
+  _snackTimer = setTimeout(() => hideSnackbar(), 8000);
+}
+
 function hideSnackbar() {
   const bar = document.getElementById('snackbar');
-  if (bar) bar.classList.remove('visible');
+  if (bar) {
+    bar.classList.remove('visible');
+    bar.classList.remove('snackbar-warn');
+  }
   clearTimeout(_snackTimer);
+}
+
+// ========== DB WRITE WITH ONE AUTO-RETRY ==========
+// Returns true on success, false on terminal failure.
+async function dbWriteWithRetry(opFn) {
+  try {
+    const res = await opFn();
+    if (!res || !res.error) return true;
+    throw res.error;
+  } catch (err) {
+    console.warn('DB op failed, retrying in 1s:', err);
+    await new Promise((r) => setTimeout(r, 1000));
+    try {
+      const res2 = await opFn();
+      if (!res2 || !res2.error) return true;
+      console.error('DB op failed on retry:', res2.error);
+      return false;
+    } catch (err2) {
+      console.error('DB op failed on retry (throw):', err2);
+      return false;
+    }
+  }
 }
 
 window.setPaidBy = async function (item, listKey, value, btnEl) {
