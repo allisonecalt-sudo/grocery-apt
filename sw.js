@@ -4,7 +4,7 @@
 //   - Supabase REST GET: network-first, fall back to cache, fall back to empty array.
 //   - Everything else: passthrough (default browser behavior).
 
-const VERSION = 'grocery-v4-2026-05-24';
+const VERSION = 'grocery-v4.1-2026-05-24';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 

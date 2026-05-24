@@ -106,13 +106,14 @@ function renderList(key) {
   const list = sortItems(items[key] || []);
   ul.innerHTML = '';
   const isNutri = key === 'allison_nutritionist';
+  const isAllison = key === 'allison';
   buildGroupedList(ul, list, key, isNutri);
   empty.style.display = list.length ? 'none' : 'block';
   count.textContent = list.length;
-  // Auto-collapse section-card when empty (except nutritionist — keep visible so + Add row is reachable)
+  // Auto-collapse section-card when empty (except nutritionist + Allison's own list — primary surfaces stay open)
   const body = document.getElementById(`${key}-body`);
   const chev = document.getElementById(`${key}-chev`);
-  if (body && list.length === 0 && !isNutri) {
+  if (body && list.length === 0 && !isNutri && !isAllison) {
     body.classList.add('collapsed');
     if (chev) chev.classList.remove('open');
   }
