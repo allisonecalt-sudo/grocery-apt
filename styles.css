@@ -276,14 +276,19 @@ header h1 {
   color: #ccc;
   cursor: pointer;
   font-size: 1rem;
-  /* 44x44 tap target without bloating glyph visually: padding does the work */
-  padding: 11px 12px;
+  /* 44x44 minimum hitbox regardless of glyph metrics */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
   border-radius: 6px;
   transition: color 0.2s;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .item-delete:hover {
   color: #e07070;
@@ -506,14 +511,19 @@ header h1 {
   color: #ccc;
   cursor: pointer;
   font-size: 0.9rem;
-  /* 44x44 tap target — padding only; visual glyph unchanged */
-  padding: 11px 12px;
+  /* 44x44 minimum hitbox regardless of glyph metrics */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
   border-radius: 6px;
   transition: color 0.2s;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .item-edit:hover {
   color: #52b788;
